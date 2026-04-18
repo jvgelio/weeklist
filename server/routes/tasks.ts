@@ -138,13 +138,14 @@ tasksRouter.patch('/:id/move', async (c) => {
   }
 
   const { bucketKey: newBucketKey, position: newPosition } = body
-  const oldBucketKey = existing.bucketKey
-  const oldPosition = existing.position
 
   await db.transaction(async (tx) => {
     // Verify the task still exists inside the transaction
     const [taskInTx] = await tx.select().from(tasks).where(eq(tasks.id, id))
     if (!taskInTx) throw new Error('Task not found')
+
+    const oldBucketKey = taskInTx.bucketKey
+    const oldPosition = taskInTx.position
 
     if (oldBucketKey === newBucketKey) {
       if (newPosition < oldPosition) {
