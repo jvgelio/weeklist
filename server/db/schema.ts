@@ -12,7 +12,7 @@ export const tasks = pgTable('tasks', {
   note: text('note'),
   position: integer('position').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(), // must be set manually on UPDATE
 })
 
 export const subtasks = pgTable('subtasks', {
