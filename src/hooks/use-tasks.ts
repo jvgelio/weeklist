@@ -64,23 +64,44 @@ export function useMoveTask() {
     mutationFn: ({ id, bucketKey, position }: { id: string; bucketKey: string; position: number }) =>
       api.moveTask(id, { bucketKey, position }),
 
-    onMutate: async ({ id, bucketKey, position }) => {
+    onMutate: async ({ id, bucketKey: newBucket, position: newPos }) => {
       // Cancel in-flight queries to prevent overwriting optimistic update
       await qc.cancelQueries({ queryKey: ['tasks'] })
 
       // Snapshot all task query data for rollback
-      const snapshot = qc.getQueriesData<Task[] | TaskMap>({ queryKey: ['tasks'] })
+      const snapshot = qc.getQueriesData({ queryKey: ['tasks'] })
 
-      // Apply optimistic update to all relevant cached queries
-      qc.setQueriesData<Task[]>({ queryKey: ['tasks'] }, (old) => {
-        if (!old || !Array.isArray(old)) return old
-        const task = old.find(t => t.id === id)
-        if (!task) return old
-        // Remove from old position, re-insert at new position in new bucket
-        const without = old.filter(t => t.id !== id)
-        const updated: Task = { ...task, bucketKey, position }
-        return [...without, updated]
-      })
+      // Update week queries (cache shape: TaskMap, due to select transform)
+      const weekQueries = qc.getQueriesData<TaskMap>({ queryKey: ['tasks', 'week'] })
+      for (const [key, data] of weekQueries) {
+        if (!data) continue
+        const newMap: TaskMap = {}
+        let movedTask: Task | null = null
+        for (const [bk, tasks] of Object.entries(data)) {
+          const found = tasks.find(t => t.id === id)
+          if (found) movedTask = found
+          newMap[bk] = tasks.filter(t => t.id !== id)
+        }
+        if (!movedTask) continue
+        const updated: Task = { ...movedTask, bucketKey: newBucket, position: newPos }
+        newMap[newBucket] = [...(newMap[newBucket] ?? []), updated]
+          .sort((a, b) => a.position - b.position)
+        qc.setQueryData(key, newMap)
+      }
+
+      // Update bucket queries (cache shape: Task[])
+      const bucketQueries = qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'bucket'] })
+      for (const [key, data] of bucketQueries) {
+        if (!data) continue
+        const movedTask = data.find(t => t.id === id)
+        if (!movedTask) continue
+        const updated: Task = { ...movedTask, bucketKey: newBucket, position: newPos }
+        const without = data.filter(t => t.id !== id)
+        const result = newBucket === movedTask.bucketKey
+          ? [...without, updated].sort((a, b) => a.position - b.position)
+          : without
+        qc.setQueryData(key, result)
+      }
 
       return { snapshot }
     },
