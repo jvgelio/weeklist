@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { eq, and, gte, lte, gt, inArray } from 'drizzle-orm'
+import { sql, eq, and, gte, lte, gt, lt, inArray } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { tasks, subtasks } from '../db/schema.js'
 
@@ -35,6 +35,14 @@ tasksRouter.get('/', async (c) => {
 
   let taskList: typeof tasks.$inferSelect[]
 
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/
+  if (from !== undefined && !dateRe.test(from)) {
+    return c.json({ error: 'from and to must be YYYY-MM-DD' }, 400)
+  }
+  if (to !== undefined && !dateRe.test(to)) {
+    return c.json({ error: 'from and to must be YYYY-MM-DD' }, 400)
+  }
+
   if (from && to) {
     taskList = await db.select().from(tasks)
       .where(and(gte(tasks.bucketKey, from), lte(tasks.bucketKey, to)))
@@ -59,6 +67,10 @@ tasksRouter.post('/', async (c) => {
     slot?: string
     position: number
   }>()
+
+  if (!body.title || !body.bucketKey || body.position === undefined) {
+    return c.json({ error: 'title, bucketKey, and position are required' }, 400)
+  }
 
   const id = crypto.randomUUID()
   const now = new Date()
@@ -96,9 +108,15 @@ tasksRouter.patch('/:id', async (c) => {
     note?: string | null
   }>()
 
-  await db.update(tasks)
-    .set({ ...body, updatedAt: new Date() })
-    .where(eq(tasks.id, id))
+  const allowed: Partial<typeof tasks.$inferInsert> = {}
+  if (body.title !== undefined) allowed.title = body.title
+  if (body.done !== undefined) allowed.done = body.done
+  if (body.slot !== undefined) allowed.slot = body.slot
+  if (body.priority !== undefined) allowed.priority = body.priority
+  if (body.recurring !== undefined) allowed.recurring = body.recurring
+  if (body.tags !== undefined) allowed.tags = body.tags
+  if (body.note !== undefined) allowed.note = body.note
+  await db.update(tasks).set({ ...allowed, updatedAt: new Date() }).where(eq(tasks.id, id))
 
   const updated = await getTaskWithSubtasks(id)
   return c.json(updated)
@@ -114,33 +132,54 @@ tasksRouter.patch('/:id/move', async (c) => {
   }
 
   const body = await c.req.json<{ bucketKey: string; position: number }>()
+
+  if (!body.bucketKey || body.position === undefined) {
+    return c.json({ error: 'bucketKey and position are required' }, 400)
+  }
+
   const { bucketKey: newBucketKey, position: newPosition } = body
   const oldBucketKey = existing.bucketKey
   const oldPosition = existing.position
 
   await db.transaction(async (tx) => {
-    // Decrement positions in old bucket for tasks after the moved task
-    const oldBucketTasks = await tx.select()
-      .from(tasks)
-      .where(and(eq(tasks.bucketKey, oldBucketKey), gt(tasks.position, oldPosition)))
+    // Verify the task still exists inside the transaction
+    const [taskInTx] = await tx.select().from(tasks).where(eq(tasks.id, id))
+    if (!taskInTx) throw new Error('Task not found')
 
-    for (const t of oldBucketTasks) {
-      await tx.update(tasks)
-        .set({ position: t.position - 1 })
-        .where(eq(tasks.id, t.id))
-    }
-
-    // Increment positions in new bucket for tasks at or after the new position
-    const newBucketTasks = await tx.select()
-      .from(tasks)
-      .where(and(eq(tasks.bucketKey, newBucketKey), gte(tasks.position, newPosition)))
-
-    for (const t of newBucketTasks) {
-      if (t.id !== id) {
+    if (oldBucketKey === newBucketKey) {
+      if (newPosition < oldPosition) {
+        // moving up: shift tasks in [newPos, oldPos-1] down by 1
         await tx.update(tasks)
-          .set({ position: t.position + 1 })
-          .where(eq(tasks.id, t.id))
+          .set({ position: sql`${tasks.position} + 1` })
+          .where(and(
+            eq(tasks.bucketKey, oldBucketKey),
+            gte(tasks.position, newPosition),
+            lt(tasks.position, oldPosition),
+          ))
+      } else if (newPosition > oldPosition) {
+        // moving down: shift tasks in [oldPos+1, newPos] up by 1
+        await tx.update(tasks)
+          .set({ position: sql`${tasks.position} - 1` })
+          .where(and(
+            eq(tasks.bucketKey, oldBucketKey),
+            gt(tasks.position, oldPosition),
+            lte(tasks.position, newPosition),
+          ))
       }
+      // same position: no-op
+    } else {
+      // cross-bucket: decrement old bucket after old position
+      await tx.update(tasks)
+        .set({ position: sql`${tasks.position} - 1` })
+        .where(and(eq(tasks.bucketKey, oldBucketKey), gt(tasks.position, oldPosition)))
+      // increment new bucket at and after new position (exclude moved task)
+      await tx.update(tasks)
+        .set({ position: sql`${tasks.position} + 1` })
+        .where(and(
+          eq(tasks.bucketKey, newBucketKey),
+          gte(tasks.position, newPosition),
+          sql`${tasks.id} != ${id}`,
+        ))
     }
 
     // Update the task itself
@@ -164,5 +203,5 @@ tasksRouter.delete('/:id', async (c) => {
 
   await db.delete(tasks).where(eq(tasks.id, id))
 
-  return new Response(null, { status: 204 })
+  return c.body(null, 204)
 })
