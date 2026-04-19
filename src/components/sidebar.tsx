@@ -63,7 +63,10 @@ function MiniWeekStrip({ weekStart, isActive, onSelect, taskCountByDay, showWeek
   const weekNum = getWeekNumber(weekStart)
 
   const bucketKey = `weeklist-${isoDate(weekStart)}`
-  const { setNodeRef, isOver } = useDroppable({ id: bucketKey })
+  const { setNodeRef, isOver } = useDroppable({
+    id: `sidebar-${bucketKey}`,
+    data: { type: 'zone', bucketKey, slot: null }
+  })
 
   return (
     <button

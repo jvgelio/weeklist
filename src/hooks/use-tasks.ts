@@ -74,8 +74,10 @@ export function useWeekTasks(weekStart: Date) {
   const to = isoDate(addDays(weekStart, 6))
   return useQuery({
     queryKey: taskKeys.week(from, false),
-    queryFn: ({ signal }) => api.fetchTasksForWeek(from, to, signal, { includeSubtasks: false }),
-    select: (tasks) => groupByBucket(tasks),
+    queryFn: async ({ signal }) => {
+      const tasks = await api.fetchTasksForWeek(from, to, signal, { includeSubtasks: false })
+      return groupByBucket(tasks)
+    },
   })
 }
 

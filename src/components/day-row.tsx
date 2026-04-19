@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
 import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, isoDate, sameDay } from '../lib/constants'
 import type { Task } from '../lib/types'
-import { TaskRow, InlineAdd, LunchDivider, IconSun } from './task-components'
+import { TaskRow, InlineAdd, LunchDivider, IconSun, IconChevron } from './task-components'
 
 // ---- DayRow (manifesto + quiet variants) ----
 
@@ -92,7 +92,14 @@ function DayRowComponent({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
+        <div ref={setAmRef} style={{ 
+          background: isOverAm ? 'var(--accent-soft)' : 'transparent', 
+          border: isOverAm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
+          borderRadius: 12, 
+          transition: 'all 120ms ease', 
+          minHeight: 60,
+          padding: isOverAm ? '4px' : 0,
+        }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
@@ -103,7 +110,14 @@ function DayRowComponent({
 
         <LunchDivider/>
 
-        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
+        <div ref={setPmRef} style={{ 
+          background: isOverPm ? 'var(--accent-soft)' : 'transparent', 
+          border: isOverPm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
+          borderRadius: 12, 
+          transition: 'all 120ms ease', 
+          minHeight: 60,
+          padding: isOverPm ? '4px' : 0,
+        }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
@@ -219,7 +233,14 @@ function DayColumnComponent({
         display: 'flex', flexDirection: 'column',
         overflowY: 'auto', minHeight: 100, gap: 4,
       }}>
-        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0', minHeight: 60 }}>
+        <div ref={setAmRef} style={{ 
+          background: isOverAm ? 'var(--accent-soft)' : 'transparent', 
+          border: isOverAm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
+          borderRadius: 12, 
+          transition: 'all 120ms ease', 
+          padding: '4px 0', 
+          minHeight: 60 
+        }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
@@ -228,7 +249,14 @@ function DayColumnComponent({
 
         <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
 
-        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0', minHeight: 60 }}>
+        <div ref={setPmRef} style={{ 
+          background: isOverPm ? 'var(--accent-soft)' : 'transparent', 
+          border: isOverPm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
+          borderRadius: 12, 
+          transition: 'all 120ms ease', 
+          padding: '4px 0', 
+          minHeight: 60 
+        }}>
           <div style={{
             fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
             textTransform: 'uppercase', color: 'var(--ink-faint)',
@@ -444,38 +472,81 @@ interface WeeklistProps {
 export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
   const { setNodeRef, isOver } = useDroppable({ id: bucketKey, data: { type: 'zone', bucketKey, slot: null } })
   const [expanded, setExpanded] = useState(false)
-  const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: true }
+  const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: false }
 
   return (
-    <div style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-sunken)' }}>
-      <button onClick={() => setExpanded(e => !e)} className="ghost-btn" style={{
-        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '8px', fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', gap: 6,
-      }}>
-        <span>Weeklist</span>
-        <span style={{
-          background: 'var(--line)', padding: '1px 6px', borderRadius: 999, fontSize: 9,
-        }}>{tasks.length}</span>
-      </button>
+    <div style={{ 
+      borderTop: '1px solid var(--line)', 
+      background: 'var(--bg-sunken)',
+      transition: 'all 200ms ease',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+        <button 
+          onClick={() => setExpanded(e => !e)} 
+          className="ghost-btn" 
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '12px', fontSize: 13, fontWeight: 700, color: 'var(--ink-mute)', gap: 8,
+            borderRadius: 0,
+          }}
+        >
+          <IconChevron dir={expanded ? 'down' : 'up'} size={14} />
+          <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Weeklist</span>
+          <span style={{
+            background: 'var(--line-strong)', padding: '1px 8px', borderRadius: 999, fontSize: 10,
+            color: 'var(--ink)',
+          }}>{tasks.length}</span>
+        </button>
+      </div>
+
       {expanded && (
-        <div ref={setNodeRef} style={{
-          padding: '16px 24px 24px', display: 'flex', flexWrap: 'wrap', gap: 16,
-          background: isOver ? 'var(--accent-soft)' : 'transparent',
-          minHeight: 100, transition: 'background 120ms ease',
-        }}>
-          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {tasks.map(t => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                {...taskProps}
-                style={{ flex: '1 1 200px', maxWidth: 300, background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}
-              />
-            ))}
-          </SortableContext>
-          <div style={{ flex: '1 1 200px', maxWidth: 300 }}>
-            <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />
-          </div>
+        <div 
+          ref={setNodeRef} 
+          style={{
+            padding: '0 24px 32px',
+            background: isOver ? 'var(--accent-soft)' : 'transparent',
+            minHeight: tasks.length === 0 ? 80 : 120,
+            transition: 'background 120ms ease',
+            display: tasks.length === 0 ? 'flex' : 'grid',
+            alignItems: tasks.length === 0 ? 'center' : 'start',
+            justifyContent: tasks.length === 0 ? 'center' : 'start',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 12,
+            maxHeight: '40vh',
+            overflowY: 'auto',
+          }}
+        >
+          {tasks.length === 0 ? (
+            <div style={{ color: 'var(--ink-faint)', fontSize: 13, fontStyle: 'italic', textAlign: 'center' }}>
+              Nenhuma tarefa na weeklist. Arraste algo para cá!
+            </div>
+          ) : (
+            <>
+              <SortableContext items={tasks.map(t => t.id)} strategy={rectSortingStrategy}>
+                {tasks.map(t => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    {...taskProps}
+                    style={{ 
+                      background: 'var(--bg-raised)', 
+                      padding: '10px 12px', 
+                      borderRadius: 12, 
+                      boxShadow: '0 2px 8px -2px rgba(0,0,0,0.05), var(--ring)',
+                      border: '1px solid var(--line)',
+                    }}
+                  />
+                ))}
+              </SortableContext>
+              <div style={{ display: 'flex', alignItems: 'flex-start', padding: '4px' }}>
+                <InlineAdd 
+                  compact 
+                  onAdd={title => onAddTask(bucketKey, title, 'am')} 
+                  placeholder="Adicionar à weeklist…" 
+                />
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -485,14 +556,14 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
 export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
   const { setNodeRef, isOver } = useDroppable({ id: bucketKey, data: { type: 'zone', bucketKey, slot: null } })
   const [expanded, setExpanded] = useState(true)
-  const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: true }
+  const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: false }
 
   if (!expanded) {
     return (
       <div style={{ borderLeft: '1px solid var(--line)', background: 'var(--bg-sunken)', width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 16 }}>
-        <button onClick={() => setExpanded(true)} className="ghost-btn" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', gap: 6, padding: '16px 8px' }}>
-          Weeklist
-          <span style={{ background: 'var(--line)', padding: '2px 6px', borderRadius: 999, fontSize: 9 }}>{tasks.length}</span>
+        <button onClick={() => setExpanded(true)} className="ghost-btn" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 11, fontWeight: 700, color: 'var(--ink-mute)', gap: 8, padding: '16px 8px', letterSpacing: '0.05em' }}>
+          WEEKLIST
+          <span style={{ background: 'var(--line-strong)', padding: '2px 6px', borderRadius: 999, fontSize: 9, color: 'var(--ink)' }}>{tasks.length}</span>
         </button>
       </div>
     )
@@ -503,29 +574,46 @@ export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask,
       width: 320, flexShrink: 0, borderLeft: '1px solid var(--line)', background: 'var(--bg-sunken)',
       display: 'flex', flexDirection: 'column'
     }}>
-      <div style={{ padding: '16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Weeklist</div>
-        <button onClick={() => setExpanded(false)} className="ghost-btn" style={{ padding: '4px', color: 'var(--ink-mute)' }}>
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Weeklist</div>
+          <span style={{ background: 'var(--line-strong)', padding: '1px 7px', borderRadius: 999, fontSize: 10, color: 'var(--ink)', fontWeight: 600 }}>{tasks.length}</span>
+        </div>
+        <button onClick={() => setExpanded(false)} className="ghost-btn" style={{ padding: '5px', color: 'var(--ink-mute)' }}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
         </button>
       </div>
       <div ref={setNodeRef} style={{
         flex: 1, padding: '16px', overflowY: 'auto',
         background: isOver ? 'var(--accent-soft)' : 'transparent',
         transition: 'background 120ms ease',
-        display: 'flex', flexDirection: 'column', gap: 6,
+        display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {tasks.map(t => (
-            <TaskRow
-              key={t.id}
-              task={t}
-              {...taskProps}
-              style={{ background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}
-            />
-          ))}
-        </SortableContext>
-        <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />
+        {tasks.length === 0 ? (
+          <div style={{ padding: '40px 20px', color: 'var(--ink-faint)', fontSize: 13, fontStyle: 'italic', textAlign: 'center' }}>
+            Nenhuma tarefa pendente na weeklist.
+          </div>
+        ) : (
+          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {tasks.map(t => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                {...taskProps}
+                style={{ 
+                  background: 'var(--bg-raised)', 
+                  padding: '10px 12px', 
+                  borderRadius: 12, 
+                  boxShadow: '0 2px 8px -2px rgba(0,0,0,0.05), var(--ring)',
+                  border: '1px solid var(--line)',
+                }}
+              />
+            ))}
+          </SortableContext>
+        )}
+        <div style={{ marginTop: 4 }}>
+          <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />
+        </div>
       </div>
     </div>
   )

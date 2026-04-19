@@ -247,12 +247,14 @@ interface TaskRowProps {
   showDragHandle?: boolean
   className?: string
   style?: React.CSSProperties
+  isOverlay?: boolean
 }
 
 function TaskRowComponent({
   task, onChange, onDelete, onOpen,
   accent, compact = false, showDragHandle = true,
   className, style: customStyle,
+  isOverlay = false,
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -269,6 +271,7 @@ function TaskRowComponent({
   } = useSortable({
     id: task.id,
     data: { type: 'task', bucketKey: task.bucketKey, slot: task.slot ?? null },
+    disabled: isOverlay,
   })
 
   useEffect(() => {
@@ -291,19 +294,19 @@ function TaskRowComponent({
     <div
       ref={setNodeRef}
       {...attributes}
-      {...(!showDragHandle ? listeners : {})}
+      {...(isOverlay ? {} : (!showDragHandle ? listeners : {}))}
       className={`task-row ${className || ''}`}
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: compact ? '7px 10px' : '10px 12px',
         borderRadius: 10,
-        opacity: isDragging ? 0.35 : 1,
+        opacity: isDragging ? 0 : 1,
         background: 'transparent',
         position: 'relative',
-        cursor: editing ? 'text' : (!showDragHandle ? 'grab' : 'default'),
+        cursor: isOverlay ? 'grabbing' : (editing ? 'text' : (!showDragHandle ? 'grab' : 'default')),
         transform: CSS.Transform.toString(transform),
-        transition,
-        touchAction: !showDragHandle ? 'none' : undefined,
+        transition: isDragging ? 'none' : transition,
+        touchAction: (isOverlay || !showDragHandle) ? 'none' : undefined,
         ...customStyle,
       }}
     >

@@ -352,7 +352,7 @@ export default function App() {
 
     // Caso 2: drop em bucket pelo ID (compatibilidade com sidebar MiniWeekStrip / outros)
     const isDateBucket = /^\d{4}-\d{2}-\d{2}/.test(overId)
-    const isWeeklistBucket = overId.startsWith('weeklist-')
+    const isWeeklistBucket = overId.includes('weeklist-')
     const isSpecialBucket = overId.startsWith('__')
     if (isDateBucket || isWeeklistBucket || isSpecialBucket) {
       let targetBucket = overId
@@ -464,6 +464,7 @@ export default function App() {
                 task={draggingTask}
                 accent={accent}
                 showDragHandle={false}
+                isOverlay={true}
                 onChange={() => {}}
                 onDelete={() => {}}
               />
