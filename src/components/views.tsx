@@ -21,8 +21,8 @@ interface ViewModeToggleProps {
 
 export function ViewModeToggle({ variant, onChange }: ViewModeToggleProps) {
   const opts: { id: Variant; label: string }[] = [
-    { id: 'quiet',     label: 'Quieto'    },
-    { id: 'columns',   label: 'Colunas'   },
+    { id: 'quiet',   label: 'Lista'   },
+    { id: 'columns', label: 'Colunas' },
   ]
   return (
     <div style={{

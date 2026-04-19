@@ -6,6 +6,9 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  pointerWithin,
+  closestCenter,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -294,6 +297,25 @@ export default function App() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
+  // Estratégia de collision: prefere tasks sobre zonas, fallback para closestCenter
+  const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+    // Verifica se o ponteiro está dentro de algum droppable
+    const pointerCollisions = pointerWithin(args)
+
+    if (pointerCollisions.length > 0) {
+      // Prefere colisão com task (não-zona) sobre zona droppable
+      const taskCollision = pointerCollisions.find((c) => {
+        const data = c.data?.droppableContainer?.data?.current as { type?: string } | undefined
+        return data?.type !== 'zone'
+      })
+      if (taskCollision) return [taskCollision]
+      return pointerCollisions
+    }
+
+    // Nenhum droppable sob o ponteiro — usa closestCenter como fallback
+    return closestCenter(args)
+  }, [])
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const id = event.active.id as string
     setDraggingTask(allTasks.find((task) => task.id === id) ?? null)
@@ -378,7 +400,12 @@ export default function App() {
   }), [accent, handleDeleteTask, handleOpenTask, handleUpdateTask])
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetectionStrategy}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
         <Sidebar
           view={view} onViewChange={setView}
