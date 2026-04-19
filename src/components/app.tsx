@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -10,15 +10,18 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { startOfWeek, addDays, isoDate } from '../lib/constants'
+import { startOfWeek, addDays } from '../lib/constants'
 import type { Task, TaskMap, View, Variant } from '../lib/types'
+import * as api from '../lib/api'
 import {
   useWeekTasks,
   useBucketTasks,
+  useTaskDetail,
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
   useMoveTask,
+  type ClientMutationTrace,
 } from '../hooks/use-tasks'
 import { Sidebar } from './sidebar'
 import { WeekView, ListView } from './views'
@@ -26,18 +29,21 @@ import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
 
 const TODAY = new Date()
+const TEXT_DEBOUNCE_MS = 300
 
-// ---- Accent per variant ----
+type TextPatch = Partial<Pick<Task, 'title' | 'note'>>
+type MutableTaskPatch = Parameters<typeof api.updateTask>[1]
 
+// Accent per variant
 function accentForVariant(variant: Variant): string {
-  if (variant === 'quiet')   return '#b8643c'
+  if (variant === 'quiet') return '#b8643c'
   if (variant === 'columns') return '#3d4a5c'
   return 'var(--accent)'
 }
 
 function applyAccentCSS(variant: Variant) {
   const root = document.documentElement
-  ;['--accent', '--accent-ink', '--accent-soft'].forEach(k => root.style.removeProperty(k))
+  ;['--accent', '--accent-ink', '--accent-soft'].forEach((k) => root.style.removeProperty(k))
   if (variant === 'quiet') {
     root.style.setProperty('--accent', '#b8643c')
     root.style.setProperty('--accent-ink', '#ffffff')
@@ -49,23 +55,45 @@ function applyAccentCSS(variant: Variant) {
   }
 }
 
-// ---- App ----
+function makeClientTrace(label: ClientMutationTrace['label']): ClientMutationTrace {
+  return { label, startedAt: performance.now() }
+}
+
+function toUpdatePayload(current: Task, next: Task): MutableTaskPatch {
+  const patch: MutableTaskPatch = {}
+
+  if (current.title !== next.title) patch.title = next.title
+  if (current.done !== next.done) patch.done = next.done
+  if (current.slot !== next.slot) patch.slot = next.slot
+  if (current.priority !== next.priority) patch.priority = next.priority
+  if (current.recurring !== next.recurring) patch.recurring = next.recurring
+  if (current.note !== next.note) patch.note = next.note
+
+  const tagsChanged = current.tags.length !== next.tags.length
+    || current.tags.some((tag, idx) => tag !== next.tags[idx])
+  if (tagsChanged) patch.tags = next.tags
+
+  return patch
+}
 
 export default function App() {
-  const [view, setView]       = useState<View>('week')
+  const [view, setView] = useState<View>('week')
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(TODAY, 1))
   const [showWeekend, setShowWeekend] = useState(() => {
     const v = localStorage.getItem('wl_weekend')
     return v === null ? true : v === '1'
   })
-  const [dark, setDark]         = useState(() => localStorage.getItem('wl_dark') === '1')
-  const [variant, setVariant]   = useState<Variant>(() => {
+  const [dark, setDark] = useState(() => localStorage.getItem('wl_dark') === '1')
+  const [variant, setVariant] = useState<Variant>(() => {
     const v = localStorage.getItem('wl_variant')
     return (v === 'quiet' || v === 'columns') ? v : 'columns'
   })
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('wl_sidebar_collapsed') === '1')
-  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draggingTask, setDraggingTask] = useState<Task | null>(null)
+
+  const textTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const pendingTextPatchRef = useRef<Map<string, TextPatch>>(new Map())
 
   // Preferences persistence
   useEffect(() => { localStorage.setItem('wl_weekend', showWeekend ? '1' : '0') }, [showWeekend])
@@ -80,8 +108,18 @@ export default function App() {
 
   // Accent CSS vars
   useEffect(() => { applyAccentCSS(variant) }, [variant])
-
   const accent = accentForVariant(variant)
+
+  // Cleanup text timers
+  useEffect(() => {
+    return () => {
+      for (const timer of textTimersRef.current.values()) {
+        clearTimeout(timer)
+      }
+      textTimersRef.current.clear()
+      pendingTextPatchRef.current.clear()
+    }
+  }, [])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -89,95 +127,177 @@ export default function App() {
       const tag = (e.target as HTMLElement).tagName?.toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       if (view !== 'week') return
-      if (e.key === 'ArrowLeft'  || e.key === 'h') { setWeekStart(w => addDays(w, -7)); e.preventDefault() }
-      if (e.key === 'ArrowRight' || e.key === 'l') { setWeekStart(w => addDays(w, 7));  e.preventDefault() }
+      if (e.key === 'ArrowLeft' || e.key === 'h') { setWeekStart((w) => addDays(w, -7)); e.preventDefault() }
+      if (e.key === 'ArrowRight' || e.key === 'l') { setWeekStart((w) => addDays(w, 7)); e.preventDefault() }
       if (e.key === 't' || e.key === 'T') { setWeekStart(startOfWeek(TODAY, 1)); e.preventDefault() }
-      if (e.key === 'w' || e.key === 'W') { setShowWeekend(s => !s); e.preventDefault() }
+      if (e.key === 'w' || e.key === 'W') { setShowWeekend((s) => !s); e.preventDefault() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [view])
 
-  // ---- Data queries ----
+  // Data queries
+  const weekResult = useWeekTasks(weekStart)
+  const inboxResult = useBucketTasks('__inbox')
+  const taskDetailResult = useTaskDetail(editingTaskId)
 
-  const weekResult    = useWeekTasks(weekStart)
-  const inboxResult   = useBucketTasks('__inbox')
+  const weekTasks: TaskMap = weekResult.data ?? {}
+  const inboxTasks: Task[] = inboxResult.data ?? []
+  const inboxMap: TaskMap = useMemo(() => ({ __inbox: inboxTasks }), [inboxTasks])
+  const sidebarMap: TaskMap = useMemo(() => ({ ...weekTasks, __inbox: inboxTasks }), [weekTasks, inboxTasks])
 
-  const weekTasks:   TaskMap = weekResult.data ?? {}
-  const inboxTasks:  Task[]  = inboxResult.data ?? []
+  const allTasks = useMemo(
+    () => [...Object.values(weekTasks).flat(), ...inboxTasks],
+    [weekTasks, inboxTasks],
+  )
 
-  // Build TaskMap shapes for views that expect it
-  const inboxMap:   TaskMap = { __inbox: inboxTasks }
+  const editingListTask = useMemo(
+    () => editingTaskId ? allTasks.find((task) => task.id === editingTaskId) ?? null : null,
+    [allTasks, editingTaskId],
+  )
+  const editingTask = taskDetailResult.data ?? editingListTask
 
-  // Sidebar needs a merged map for the mini-calendar density
-  const sidebarMap: TaskMap = { ...weekTasks, __inbox: inboxTasks }
-
-  // ---- Mutations ----
-
+  // Mutations
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
-  const moveTask   = useMoveTask()
+  const moveTask = useMoveTask()
 
-  function handleAddTask(bucketKey: string, title: string, slot: 'am' | 'pm' = 'am') {
-    const tasksInBucket = weekTasks[bucketKey] ?? inboxTasks ?? []
-    const position = tasksInBucket.length
-    createTask.mutate({ title, bucketKey, slot, position })
-  }
+  const flushTaskTextPatch = useCallback((taskId: string) => {
+    const timer = textTimersRef.current.get(taskId)
+    if (timer) {
+      clearTimeout(timer)
+      textTimersRef.current.delete(taskId)
+    }
 
-  function handleAddBucketTask(bucketKey: string, title: string) {
-    const list = inboxTasks
-    createTask.mutate({ title, bucketKey, position: list.length })
-  }
+    const patch = pendingTextPatchRef.current.get(taskId)
+    if (!patch) return
 
-  function handleUpdateTask(task: Task) {
+    pendingTextPatchRef.current.delete(taskId)
+    updateTask.mutate({
+      id: taskId,
+      data: patch,
+      clientTrace: makeClientTrace('text'),
+    })
+  }, [updateTask])
+
+  const queueTaskTextPatch = useCallback((taskId: string, patch: TextPatch) => {
+    const current = pendingTextPatchRef.current.get(taskId) ?? {}
+    pendingTextPatchRef.current.set(taskId, { ...current, ...patch })
+
+    const activeTimer = textTimersRef.current.get(taskId)
+    if (activeTimer) clearTimeout(activeTimer)
+
+    const timer = setTimeout(() => {
+      flushTaskTextPatch(taskId)
+    }, TEXT_DEBOUNCE_MS)
+    textTimersRef.current.set(taskId, timer)
+  }, [flushTaskTextPatch])
+
+  const handleAddTask = useCallback((bucketKey: string, title: string, slot: 'am' | 'pm' = 'am') => {
+    const tasksInBucket = bucketKey === '__inbox'
+      ? inboxTasks
+      : (weekTasks[bucketKey] ?? [])
+    createTask.mutate({
+      title,
+      bucketKey,
+      slot,
+      position: tasksInBucket.length,
+      clientTrace: makeClientTrace('create'),
+    })
+  }, [createTask, weekTasks, inboxTasks])
+
+  const handleAddBucketTask = useCallback((bucketKey: string, title: string) => {
+    createTask.mutate({
+      title,
+      bucketKey,
+      position: inboxTasks.length,
+      clientTrace: makeClientTrace('create'),
+    })
+  }, [createTask, inboxTasks.length])
+
+  const handleUpdateTask = useCallback((task: Task) => {
+    const current = allTasks.find((entry) => entry.id === task.id)
+    if (!current) return
+
+    const patch = toUpdatePayload(current, task)
+    const keys = Object.keys(patch) as Array<keyof MutableTaskPatch>
+    if (keys.length === 0) return
+
+    const textOnly = keys.every((key) => key === 'title' || key === 'note')
+    if (textOnly) {
+      queueTaskTextPatch(task.id, patch)
+      // Inline title edits arrive after blur, so flush immediately.
+      flushTaskTextPatch(task.id)
+      return
+    }
+
+    const isDoneToggleOnly = keys.length === 1 && keys[0] === 'done'
     updateTask.mutate({
       id: task.id,
-      data: {
-        title:     task.title,
-        done:      task.done,
-        slot:      task.slot,
-        priority:  task.priority,
-        recurring: task.recurring,
-        tags:      task.tags,
-        note:      task.note,
-      },
+      data: patch,
+      clientTrace: makeClientTrace(isDoneToggleOnly ? 'toggle_done' : 'update'),
     })
-    // keep editor in sync optimistically
-    setEditingTask(prev => prev?.id === task.id ? task : prev)
-  }
+  }, [allTasks, flushTaskTextPatch, queueTaskTextPatch, updateTask])
 
-  function handleDeleteTask(id: string) {
+  const handleTaskTextChange = useCallback((taskId: string, patch: TextPatch) => {
+    queueTaskTextPatch(taskId, patch)
+  }, [queueTaskTextPatch])
+
+  const handleFlushTaskText = useCallback((taskId: string) => {
+    flushTaskTextPatch(taskId)
+  }, [flushTaskTextPatch])
+
+  const handleDeleteTask = useCallback((id: string) => {
+    const timer = textTimersRef.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      textTimersRef.current.delete(id)
+    }
+    pendingTextPatchRef.current.delete(id)
     deleteTask.mutate(id)
-  }
+    if (editingTaskId === id) {
+      setEditingTaskId(null)
+    }
+  }, [deleteTask, editingTaskId])
 
-  function handleMoveTask(id: string, bucketKey: string) {
-    // Find current task to know its position; drop at end of target
-    const allTasks = [
-      ...Object.values(weekTasks).flat(),
-      ...inboxTasks,
-    ]
-    const task = allTasks.find(t => t.id === id)
+  const handleMoveTask = useCallback((id: string, bucketKey: string) => {
+    const task = allTasks.find((entry) => entry.id === id)
     if (!task || task.bucketKey === bucketKey) return
-    const targetList = weekTasks[bucketKey] ?? inboxTasks
-    moveTask.mutate({ id, bucketKey, position: targetList.length })
-  }
 
-  // ---- DnD ----
+    const targetList = bucketKey === '__inbox'
+      ? inboxTasks
+      : (weekTasks[bucketKey] ?? [])
 
+    moveTask.mutate({
+      id,
+      bucketKey,
+      position: targetList.length,
+      clientTrace: makeClientTrace('move'),
+    })
+  }, [allTasks, inboxTasks, moveTask, weekTasks])
+
+  const handleOpenTask = useCallback((task: Task) => {
+    setEditingTaskId(task.id)
+  }, [])
+
+  const handleCloseEditor = useCallback(() => {
+    if (editingTaskId) {
+      flushTaskTextPatch(editingTaskId)
+    }
+    setEditingTaskId(null)
+  }, [editingTaskId, flushTaskTextPatch])
+
+  // DnD
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  function handleDragStart(event: DragStartEvent) {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     const id = event.active.id as string
-    const allTasks = [
-      ...Object.values(weekTasks).flat(),
-      ...inboxTasks,
-    ]
-    setDraggingTask(allTasks.find(t => t.id === id) ?? null)
-  }
+    setDraggingTask(allTasks.find((task) => task.id === id) ?? null)
+  }, [allTasks])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setDraggingTask(null)
@@ -187,41 +307,47 @@ export default function App() {
     const taskId = active.id as string
     const overId = over.id as string
 
-    const allTasks = [
-      ...Object.values(weekTasks).flat(),
-      ...inboxTasks,
-    ]
-
-    const task = allTasks.find(t => t.id === taskId)
+    const task = allTasks.find((entry) => entry.id === taskId)
     if (!task) return
 
-    // Determine target bucket
-    const isBucketKey = /^\d{4}-\d{2}-\d{2}$/.test(overId) || overId.startsWith('weeklist-') || overId.startsWith('__')
+    const isBucketKey = /^\d{4}-\d{2}-\d{2}$/.test(overId)
+      || overId.startsWith('weeklist-')
+      || overId.startsWith('__')
 
     if (isBucketKey) {
       if (task.bucketKey === overId) return
-      const targetList = weekTasks[overId] ?? inboxTasks
-      moveTask.mutate({ id: taskId, bucketKey: overId, position: targetList.length })
-    } else {
-      // Dropped over another task — find its bucket and position
-      const overTask = allTasks.find(t => t.id === overId)
-      if (!overTask) return
-      const targetBucket = overTask.bucketKey
-      const targetList = weekTasks[targetBucket] ?? inboxTasks
-      const overIndex = targetList.findIndex(t => t.id === overId)
-      const newPosition = overIndex >= 0 ? overIndex : targetList.length
-      moveTask.mutate({ id: taskId, bucketKey: targetBucket, position: newPosition })
+      const targetList = overId === '__inbox' ? inboxTasks : (weekTasks[overId] ?? [])
+      moveTask.mutate({
+        id: taskId,
+        bucketKey: overId,
+        position: targetList.length,
+        clientTrace: makeClientTrace('move'),
+      })
+      return
     }
-  }, [weekTasks, inboxTasks, moveTask])
 
-  // ---- Shared props ----
+    const overTask = allTasks.find((entry) => entry.id === overId)
+    if (!overTask) return
 
-  const sharedDayProps = {
+    const targetBucket = overTask.bucketKey
+    const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
+    const overIndex = targetList.findIndex((entry) => entry.id === overId)
+    const newPosition = overIndex >= 0 ? overIndex : targetList.length
+
+    moveTask.mutate({
+      id: taskId,
+      bucketKey: targetBucket,
+      position: newPosition,
+      clientTrace: makeClientTrace('move'),
+    })
+  }, [allTasks, inboxTasks, moveTask, weekTasks])
+
+  const sharedDayProps = useMemo(() => ({
     accent,
-    onOpenTask: setEditingTask,
+    onOpenTask: handleOpenTask,
     onUpdateTask: handleUpdateTask,
     onDeleteTask: handleDeleteTask,
-  }
+  }), [accent, handleDeleteTask, handleOpenTask, handleUpdateTask])
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -233,7 +359,7 @@ export default function App() {
           showWeekend={showWeekend}
           accent={accent}
           collapsed={collapsed}
-          onToggleCollapsed={() => setCollapsed(v => !v)}
+          onToggleCollapsed={() => setCollapsed((v) => !v)}
         />
 
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -245,10 +371,10 @@ export default function App() {
               showWeekend={showWeekend}
               dark={dark}
               onChangeVariant={setVariant}
-              onToggleWeekend={() => setShowWeekend(s => !s)}
-              onToggleDark={() => setDark(d => !d)}
-              onPrevWeek={() => setWeekStart(w => addDays(w, -7))}
-              onNextWeek={() => setWeekStart(w => addDays(w, 7))}
+              onToggleWeekend={() => setShowWeekend((s) => !s)}
+              onToggleDark={() => setDark((d) => !d)}
+              onPrevWeek={() => setWeekStart((w) => addDays(w, -7))}
+              onNextWeek={() => setWeekStart((w) => addDays(w, 7))}
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
               onAddTask={handleAddTask}
               onMoveTask={handleMoveTask}
@@ -259,7 +385,7 @@ export default function App() {
           {view === 'inbox' && (
             <ListView
               title="inbox"
-              subtitle="Sem data · capture rápido"
+              subtitle="Sem data · capture rapido"
               bucket="__inbox"
               tasks={inboxMap}
               onAddTask={handleAddBucketTask}
@@ -294,8 +420,10 @@ export default function App() {
           task={editingTask}
           accent={accent}
           onChange={handleUpdateTask}
+          onTextChange={handleTaskTextChange}
+          onFlushText={handleFlushTaskText}
           onDelete={handleDeleteTask}
-          onClose={() => setEditingTask(null)}
+          onClose={handleCloseEditor}
           onMoveTask={handleMoveTask}
         />
       )}
