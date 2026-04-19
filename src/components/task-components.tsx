@@ -245,11 +245,14 @@ interface TaskRowProps {
   accent?: string
   compact?: boolean
   showDragHandle?: boolean
+  className?: string
+  style?: React.CSSProperties
 }
 
 function TaskRowComponent({
   task, onChange, onDelete, onOpen,
   accent, compact = false, showDragHandle = true,
+  className, style: customStyle,
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -286,7 +289,7 @@ function TaskRowComponent({
       ref={setNodeRef}
       {...attributes}
       {...(!showDragHandle ? listeners : {})}
-      className="task-row"
+      className={`task-row ${className || ''}`}
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: compact ? '7px 10px' : '10px 12px',
@@ -298,6 +301,7 @@ function TaskRowComponent({
         transform: CSS.Transform.toString(transform),
         transition,
         touchAction: !showDragHandle ? 'none' : undefined,
+        ...customStyle,
       }}
     >
       {showDragHandle && (
@@ -308,317 +312,164 @@ function TaskRowComponent({
             alignSelf: 'center',
             color: 'var(--ink-faint)',
             opacity: 0,
-            transition: 'opacity 100ms ease',
-            marginLeft: -14, marginRight: -4,
             cursor: 'grab',
             touchAction: 'none',
           }}
         >
-          <IconDrag/>
+          <IconDrag size={16}/>
         </span>
       )}
 
-      <span style={{ marginTop: 2, flexShrink: 0 }}>
-        <Checkbox checked={task.done} onChange={v => onChange({ ...task, done: v })} accent={accent}/>
-      </span>
+      <Checkbox
+        checked={task.done}
+        onChange={(v) => onChange({ ...task, done: v })}
+        accent={accent}
+      />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {editing ? (
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onBlur={commit}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); commit() }
-                if (e.key === 'Escape') { setDraft(task.title); setEditing(false) }
-              }}
-              style={{
-                flex: 1, minWidth: 0,
-                border: 'none', outline: 'none', background: 'transparent',
-                fontSize: compact ? 13 : 14, fontWeight: 500, letterSpacing: '-0.01em',
-                lineHeight: 1.4, padding: 0, color: 'var(--ink)',
-              }}
-            />
-          ) : (
-            <span
-              onClick={(e) => { e.stopPropagation(); if (onOpen) onOpen(task); else setEditing(true) }}
-              onDoubleClick={(e) => { e.stopPropagation(); setEditing(true) }}
-              style={{
-                fontSize: compact ? 13 : 14, fontWeight: 500, letterSpacing: '-0.01em',
-                color: task.done ? 'var(--ink-mute)' : 'var(--ink)',
-                textDecoration: task.done ? 'line-through' : 'none',
-                textDecorationColor: 'var(--ink-faint)',
-                lineHeight: 1.4, wordBreak: 'break-word',
-                flex: 1,
-              }}
-            >
-              {task.title}
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="task-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit()
+              if (e.key === 'Escape') { setDraft(task.title); setEditing(false) }
+            }}
+          />
+        ) : (
+          <div style={{
+            fontSize: 14, fontWeight: 500,
+            color: task.done ? 'var(--ink-mute)' : 'var(--ink)',
+            textDecoration: task.done ? 'line-through' : 'none',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            cursor: 'text',
+          }} onClick={() => setEditing(true)}>
+            {task.title}
+          </div>
+        )}
+
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4,
+          alignItems: 'center',
+        }}>
+          {task.priority && <PriorityFlag priority={task.priority}/>}
+          {task.recurring && (
+            <span style={{ color: 'var(--ink-mute)', fontSize: 10 }}>
+              <IconRepeat size={10}/> {task.recurring}
             </span>
           )}
-
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-            <PriorityFlag priority={task.priority}/>
-            {task.recurring && (
-              <span style={{ color: 'var(--ink-faint)', display: 'inline-flex', alignItems: 'center' }}>
-                <IconRepeat/>
-              </span>
-            )}
-          </span>
+          {subTotal > 0 && (
+            <span style={{ color: 'var(--ink-mute)', fontSize: 10, fontWeight: 600 }}>
+              {subDone}/{subTotal}
+            </span>
+          )}
+          {task.tags.map(t => <TagDot key={t} tag={t}/>)}
         </div>
-
-        {(task.tags.length > 0 || subTotal > 0 || task.note) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-            {task.tags.map(t => <TagChip key={t} tag={t}/>)}
-            {subTotal > 0 && (
-              <button
-                onClick={() => setExpanded(e => !e)}
-                className="ghost-btn"
-                style={{ padding: '1px 7px', fontSize: 10, gap: 3 }}
-              >
-                <IconChevron size={9} dir={expanded ? 'down' : 'right'}/>
-                {subDone}/{subTotal}
-              </button>
-            )}
-          </div>
-        )}
-
-        {expanded && task.subtasks.length > 0 && (
-          <div style={{
-            marginTop: 8, paddingLeft: 10,
-            display: 'flex', flexDirection: 'column', gap: 5,
-            borderLeft: '1.5px solid var(--line)',
-          }}>
-            {task.subtasks.map(s => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Checkbox
-                  checked={s.done}
-                  onChange={v => onChange({
-                    ...task,
-                    subtasks: task.subtasks.map(x => x.id === s.id ? { ...x, done: v } : x),
-                  })}
-                  accent={accent}
-                />
-                <span style={{
-                  fontSize: 12,
-                  color: s.done ? 'var(--ink-mute)' : 'var(--ink-soft)',
-                  textDecoration: s.done ? 'line-through' : 'none',
-                }}>
-                  {s.title}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {expanded && task.note && (
-          <div style={{
-            marginTop: 6, fontSize: 12, color: 'var(--ink-mute)',
-            fontStyle: 'italic', lineHeight: 1.5,
-          }}>
-            {task.note}
-          </div>
-        )}
       </div>
 
-      <div
-        className="row-actions"
-        style={{
-          opacity: 0, display: 'flex', gap: 2, alignItems: 'center',
-          transition: 'opacity 100ms ease', flexShrink: 0,
-        }}
-      >
-        <button
-          onClick={() => onDelete(task.id)}
-          className="ghost-btn"
-          style={{ padding: '4px 6px', color: 'var(--ink-mute)' }}
-        >
-          <IconTrash/>
+      <div className="row-actions" style={{
+        display: 'flex', gap: 4, opacity: 0, transition: 'opacity 120ms ease',
+      }}>
+        {onOpen && (
+          <button onClick={() => onOpen(task)} className="ghost-btn" style={{ padding: '4px 8px' }}>
+            <IconChevron size={14}/>
+          </button>
+        )}
+        <button onClick={() => onDelete(task.id)} className="ghost-btn" style={{ padding: '4px 8px' }}>
+          <IconTrash size={14}/>
         </button>
       </div>
     </div>
   )
 }
 
-function areTasksEqual(a: Task, b: Task): boolean {
-  if (a === b) return true
-  if (a.id !== b.id) return false
-  if (a.title !== b.title) return false
-  if (a.done !== b.done) return false
-  if (a.bucketKey !== b.bucketKey) return false
-  if (a.slot !== b.slot) return false
-  if (a.priority !== b.priority) return false
-  if (a.recurring !== b.recurring) return false
-  if (a.note !== b.note) return false
-  if (a.position !== b.position) return false
-  if (a.updatedAt !== b.updatedAt) return false
-  if (a.tags.length !== b.tags.length) return false
-  if (a.subtasks.length !== b.subtasks.length) return false
-
-  for (let i = 0; i < a.tags.length; i++) {
-    if (a.tags[i] !== b.tags[i]) return false
-  }
-
-  for (let i = 0; i < a.subtasks.length; i++) {
-    const left = a.subtasks[i]
-    const right = b.subtasks[i]
-    if (left.id !== right.id) return false
-    if (left.title !== right.title) return false
-    if (left.done !== right.done) return false
-    if (left.position !== right.position) return false
-  }
-
-  return true
-}
-
-function areTaskRowPropsEqual(prev: TaskRowProps, next: TaskRowProps): boolean {
-  return (
-    prev.onChange === next.onChange
-    && prev.onDelete === next.onDelete
-    && prev.onOpen === next.onOpen
-    && prev.accent === next.accent
-    && prev.compact === next.compact
-    && prev.showDragHandle === next.showDragHandle
-    && areTasksEqual(prev.task, next.task)
-  )
-}
-
-export const TaskRow = React.memo(TaskRowComponent, areTaskRowPropsEqual)
+export const TaskRow = React.memo(TaskRowComponent)
 
 // ---- InlineAdd ----
 
 interface InlineAddProps {
   onAdd: (title: string) => void
   placeholder?: string
-  accent?: string
   compact?: boolean
-  autofocus?: boolean
 }
 
-export function InlineAdd({
-  onAdd,
-  placeholder = 'Nova tarefa...',
-  accent,
-  compact = false,
-  autofocus = false,
-}: InlineAddProps) {
-  const [active, setActive] = useState(autofocus)
-  const [draft, setDraft] = useState('')
-  const ref = useRef<HTMLInputElement>(null)
-  const ignoreNextBlur = useRef(false)
-  const lastCommitRef = useRef<{ value: string; at: number } | null>(null)
+export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact }: InlineAddProps) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { if (active && ref.current) ref.current.focus() }, [active])
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus()
+  }, [editing])
 
-  function commit(keepOpen = false) {
-    const v = draft.trim()
-    if (v) {
-      const now = performance.now()
-      const last = lastCommitRef.current
-      const isDuplicate = Boolean(last && last.value === v && (now - last.at) < 200)
-      if (!isDuplicate) {
-        onAdd(v)
-        lastCommitRef.current = { value: v, at: now }
-      }
-    }
-    setDraft('')
-    if (!keepOpen) setActive(false)
+  function commit() {
+    const v = val.trim()
+    if (v) onAdd(v)
+    setVal('')
+    setEditing(false)
   }
 
-  if (!active) {
+  if (!editing) {
     return (
       <button
-        onClick={() => setActive(true)}
-        className="add-row"
+        onClick={() => setEditing(true)}
+        className="ghost-btn"
         style={{
+          width: '100%',
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: compact ? '7px 10px' : '9px 12px',
-          color: 'var(--ink-faint)', background: 'transparent',
-          border: 'none', width: '100%', borderRadius: 10,
-          fontSize: 13, fontWeight: 500, textAlign: 'left',
-          cursor: 'pointer',
-          transition: 'color 100ms ease, background 100ms ease',
+          padding: compact ? '4px 8px' : '8px 12px',
+          fontSize: 13, color: 'var(--ink-mute)',
+          textAlign: 'left',
+          borderRadius: 8,
+          transition: 'all 120ms ease',
         }}
       >
-        <span style={{
-          width: 18, height: 18, borderRadius: 5,
-          border: '1.5px dashed var(--line-strong)',
-          display: 'grid', placeItems: 'center', color: 'inherit', flexShrink: 0,
-        }}>
-          <IconPlus size={10}/>
-        </span>
+        <IconPlus size={14}/>
         {placeholder}
       </button>
     )
   }
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: compact ? '7px 10px' : '9px 12px',
-      borderRadius: 10,
-      background: 'var(--bg-raised)',
-      boxShadow: 'var(--ring-strong)',
-    }}>
-      <span style={{
-        width: 18, height: 18, borderRadius: 5,
-        border: `1.5px solid ${accent ?? 'var(--accent)'}`,
-        flexShrink: 0,
-      }}/>
+    <div style={{ padding: '0 4px' }}>
       <input
-        ref={ref}
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onBlur={() => {
-          if (ignoreNextBlur.current) {
-            ignoreNextBlur.current = false
-            return
-          }
-          commit(false)
+        ref={inputRef}
+        className="task-input"
+        placeholder="O que precisa ser feito?"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') { setVal(''); setEditing(false) }
         }}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            ignoreNextBlur.current = true
-            commit(e.shiftKey)
-          }
-          if (e.key === 'Escape') { setDraft(''); setActive(false) }
-        }}
-        placeholder="Digite e Enter (Shift+Enter pra adicionar outra)"
         style={{
-          flex: 1, border: 'none', outline: 'none', background: 'transparent',
-          fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em',
-          color: 'var(--ink)',
+          width: '100%',
+          padding: '6px 10px',
+          borderRadius: 8,
+          border: '1.5px solid var(--accent)',
+          background: 'var(--bg)',
+          fontSize: 14,
         }}
       />
     </div>
   )
 }
+
 // ---- LunchDivider ----
 
 export function LunchDivider() {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      margin: '6px 0',
-      userSelect: 'none',
+      display: 'flex', alignItems: 'center', gap: 10, margin: '8px 4px',
+      opacity: 0.5,
     }}>
       <div style={{ flex: 1, height: 1, background: 'var(--line)' }}/>
-      <span style={{
-        fontSize: 9, fontWeight: 700, letterSpacing: '0.14em',
-        textTransform: 'uppercase', color: 'var(--ink-faint)',
-        display: 'flex', alignItems: 'center', gap: 5,
-        padding: '2px 8px',
-        borderRadius: 9999,
-        background: 'var(--bg-sunken)',
-        boxShadow: 'inset 0 0 0 1px var(--line)',
-      }}>
-        <IconSun size={9}/>
-        almoço
-      </span>
+      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>almoço</span>
       <div style={{ flex: 1, height: 1, background: 'var(--line)' }}/>
     </div>
   )
 }
-

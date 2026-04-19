@@ -169,13 +169,13 @@ tasksRouter.patch('/:id/move', async (c) => {
     return c.json({ error: 'Task not found' }, 404)
   }
 
-  const body = await c.req.json<{ bucketKey: string; position: number }>()
+  const body = await c.req.json<{ bucketKey: string; position: number; slot?: string | null }>()
 
   if (!body.bucketKey || body.position === undefined) {
     return c.json({ error: 'bucketKey and position are required' }, 400)
   }
 
-  const { bucketKey: newBucketKey, position: newPosition } = body
+  const { bucketKey: newBucketKey, position: newPosition, slot: newSlot } = body
 
   await db.transaction(async (tx) => {
     // Verify the task still exists inside the transaction
@@ -223,7 +223,12 @@ tasksRouter.patch('/:id/move', async (c) => {
 
     // Update the task itself
     await tx.update(tasks)
-      .set({ bucketKey: newBucketKey, position: newPosition, updatedAt: new Date() })
+      .set({
+        bucketKey: newBucketKey,
+        position: newPosition,
+        slot: newSlot !== undefined ? newSlot : taskInTx.slot,
+        updatedAt: new Date()
+      })
       .where(eq(tasks.id, id))
   })
 

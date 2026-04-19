@@ -310,16 +310,27 @@ export default function App() {
     const task = allTasks.find((entry) => entry.id === taskId)
     if (!task) return
 
-    const isBucketKey = /^\d{4}-\d{2}-\d{2}$/.test(overId)
-      || overId.startsWith('weeklist-')
-      || overId.startsWith('__')
+    const isDateBucket = /^\d{4}-\d{2}-\d{2}/.test(overId)
+    const isWeeklistBucket = overId.startsWith('weeklist-')
+    const isSpecialBucket = overId.startsWith('__')
+    const isBucketKey = isDateBucket || isWeeklistBucket || isSpecialBucket
 
     if (isBucketKey) {
-      if (task.bucketKey === overId) return
-      const targetList = overId === '__inbox' ? inboxTasks : (weekTasks[overId] ?? [])
+      let targetBucket = overId
+      let targetSlot: 'am' | 'pm' | null = null
+
+      if (overId.includes(':')) {
+        const [bucket, slot] = overId.split(':')
+        targetBucket = bucket
+        targetSlot = slot as 'am' | 'pm'
+      }
+
+      const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
+      
       moveTask.mutate({
         id: taskId,
-        bucketKey: overId,
+        bucketKey: targetBucket,
+        slot: targetSlot,
         position: targetList.length,
         clientTrace: makeClientTrace('move'),
       })
@@ -337,6 +348,7 @@ export default function App() {
     moveTask.mutate({
       id: taskId,
       bucketKey: targetBucket,
+      slot: overTask.slot,
       position: newPosition,
       clientTrace: makeClientTrace('move'),
     })

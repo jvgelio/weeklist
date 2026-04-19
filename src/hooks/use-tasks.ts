@@ -24,6 +24,7 @@ export interface MoveTaskInput {
   id: string
   bucketKey: string
   position: number
+  slot?: string | null
   clientTrace?: ClientMutationTrace
 }
 
@@ -208,16 +209,16 @@ export function useDeleteTask() {
 export function useMoveTask() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, bucketKey, position }: MoveTaskInput) =>
-      api.moveTask(id, { bucketKey, position }),
-    onMutate: async ({ id, bucketKey, position, clientTrace }) => {
+    mutationFn: ({ id, bucketKey, position, slot }: MoveTaskInput) =>
+      api.moveTask(id, { bucketKey, position, slot }),
+    onMutate: async ({ id, bucketKey, position, slot, clientTrace }) => {
       await qc.cancelQueries({ queryKey: taskKeys.all() })
       const snapshot = qc.getQueriesData({ queryKey: taskKeys.all() })
       const token = beginTaskMutation(id)
 
       const task = findTaskInCaches(qc, id)
       if (task) {
-        applyOptimisticMoveToCaches(qc, task, bucketKey, position)
+        applyOptimisticMoveToCaches(qc, task, bucketKey, position, slot)
       }
 
       logClientLatency(clientTrace, 'optimistic')
@@ -450,11 +451,13 @@ function applyOptimisticMoveToCaches(
   originalTask: Task,
   targetBucketKey: string,
   targetPosition: number,
+  targetSlot?: string | null,
 ) {
   const movedTask: Task = {
     ...originalTask,
     bucketKey: targetBucketKey,
     position: targetPosition,
+    slot: targetSlot !== undefined ? (targetSlot as 'am' | 'pm' | null) : originalTask.slot,
     updatedAt: new Date().toISOString(),
   }
 

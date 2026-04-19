@@ -27,7 +27,10 @@ function DayRowComponent({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: DayRowProps) {
   const key = isoDate(date)
-  const { setNodeRef, isOver } = useDroppable({ id: key })
+  
+  // Separate droppables for AM and PM
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am` })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm` })
 
   const dayIdx  = date.getDay()
   const dayName = DAY_NAMES_LONG_PT[dayIdx]
@@ -48,13 +51,11 @@ function DayRowComponent({
   /* ---- Quiet (TeuxDeux) ---- */
   return (
     <section
-      ref={setNodeRef}
       style={{
         padding: '14px 16px',
         borderRadius: 14,
         background: isToday ? 'var(--bg-raised)' : 'transparent',
         boxShadow: isToday ? 'var(--ring)' : 'none',
-        border: isOver ? `1.5px solid ${accent}` : '1.5px solid transparent',
         transition: 'background 120ms ease, border 120ms ease',
       }}
     >
@@ -91,19 +92,25 @@ function DayRowComponent({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-            <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder={amTasks.length === 0 ? 'Manhã…' : '+'}/>
-          </div>
-        </SortableContext>
+        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+          <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder={amTasks.length === 0 ? 'Manhã…' : '+'}/>
+            </div>
+          </SortableContext>
+        </div>
+        
         <LunchDivider/>
-        <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-            <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder={pmTasks.length === 0 ? 'Tarde…' : '+'}/>
-          </div>
-        </SortableContext>
+        
+        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+          <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder={pmTasks.length === 0 ? 'Tarde…' : '+'}/>
+            </div>
+          </SortableContext>
+        </div>
       </div>
     </section>
   )
@@ -132,7 +139,10 @@ function DayColumnComponent({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: DayColumnProps) {
   const key = isoDate(date)
-  const { setNodeRef, isOver } = useDroppable({ id: key })
+  
+  // Separate droppables for AM and PM
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am` })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm` })
 
   const dayIdx   = date.getDay()
   const dayShort = DAY_NAMES_PT[dayIdx]
@@ -154,7 +164,6 @@ function DayColumnComponent({
 
   return (
     <section
-      ref={setNodeRef}
       style={{
         flex: compact ? '0 0 240px' : '1 1 0',
         minWidth: compact ? 240 : 200,
@@ -163,9 +172,6 @@ function DayColumnComponent({
         borderRadius: 0,
         boxShadow: 'none',
         borderRight: '1px dashed var(--line)',
-        border: isOver ? `1px dashed ${accent}` : 'none',
-        borderRightStyle: isOver ? 'dashed' : 'dashed',
-        borderRightColor: isOver ? accent : 'var(--line)',
         paddingRight: 16,
         marginRight: 16,
         transition: 'border 120ms ease, background 120ms ease',
@@ -213,24 +219,29 @@ function DayColumnComponent({
         display: 'flex', flexDirection: 'column',
         overflowY: 'auto', minHeight: 100, gap: 4,
       }}>
-        <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-        </SortableContext>
-        <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
-
-        <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
-        <div style={{
-          fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: 'var(--ink-faint)',
-          padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          <IconSun size={8}/> tarde
+        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0' }}>
+          <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
+          </SortableContext>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
         </div>
 
-        <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-        </SortableContext>
-        <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
+        <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
+        
+        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0' }}>
+          <div style={{
+            fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: 'var(--ink-faint)',
+            padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            <IconSun size={8}/> tarde
+          </div>
+
+          <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
+          </SortableContext>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
+        </div>
       </div>
     </section>
   )
@@ -363,7 +374,10 @@ function WeekendDayCell({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: WeekendDayCellProps) {
   const key = isoDate(date)
-  const { setNodeRef, isOver } = useDroppable({ id: key })
+  
+  // Separate droppables for AM and PM
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am` })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm` })
 
   const taskProps = {
     accent,
@@ -375,10 +389,9 @@ function WeekendDayCell({
 
   return (
     <div
-      ref={setNodeRef}
       style={{
         padding: '14px 16px', borderRadius: 14,
-        background: isOver ? 'var(--accent-soft)' : 'var(--bg-sunken)',
+        background: 'var(--bg-sunken)',
         transition: 'background 120ms ease',
       }}
     >
@@ -392,19 +405,25 @@ function WeekendDayCell({
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-            <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
-          </div>
-        </SortableContext>
+        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+          <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
+            </div>
+          </SortableContext>
+        </div>
+        
         <LunchDivider/>
-        <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-            <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
-          </div>
-        </SortableContext>
+        
+        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+          <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
+            </div>
+          </SortableContext>
+        </div>
       </div>
     </div>
   )
@@ -446,9 +465,12 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
         }}>
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map(t => (
-              <div key={t.id} style={{ flex: '1 1 200px', maxWidth: 300, background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}>
-                <TaskRow task={t} {...taskProps} />
-              </div>
+              <TaskRow
+                key={t.id}
+                task={t}
+                {...taskProps}
+                style={{ flex: '1 1 200px', maxWidth: 300, background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}
+              />
             ))}
           </SortableContext>
           <div style={{ flex: '1 1 200px', maxWidth: 300 }}>
@@ -495,9 +517,12 @@ export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask,
       }}>
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map(t => (
-            <div key={t.id} style={{ background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}>
-              <TaskRow task={t} {...taskProps} />
-            </div>
+            <TaskRow
+              key={t.id}
+              task={t}
+              {...taskProps}
+              style={{ background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}
+            />
           ))}
         </SortableContext>
         <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />

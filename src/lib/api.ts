@@ -80,7 +80,7 @@ export async function updateTask(
 
 export async function moveTask(
   id: string,
-  data: { bucketKey: string; position: number }
+  data: { bucketKey: string; position: number; slot?: string | null }
 ): Promise<Task> {
   const res = await fetch(`${BASE}/tasks/${id}/move`, {
     method: 'PATCH',
