@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"tsx watch server/index.ts\"",
+    "dev": "concurrently \"vite\" \"tsx --env-file=.env watch server/index.ts\"",
     "build": "vite build",
     "start": "tsx server/index.ts",
     "db:generate": "drizzle-kit generate",
