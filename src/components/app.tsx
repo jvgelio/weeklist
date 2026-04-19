@@ -61,7 +61,7 @@ export default function App() {
   const [dark, setDark]         = useState(() => localStorage.getItem('wl_dark') === '1')
   const [variant, setVariant]   = useState<Variant>(() => {
     const v = localStorage.getItem('wl_variant')
-    return (v === 'manifesto' || v === 'quiet' || v === 'columns') ? v : 'manifesto'
+    return (v === 'quiet' || v === 'columns') ? v : 'columns'
   })
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('wl_sidebar_collapsed') === '1')
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -102,18 +102,15 @@ export default function App() {
 
   const weekResult    = useWeekTasks(weekStart)
   const inboxResult   = useBucketTasks('__inbox')
-  const somedayResult = useBucketTasks('__someday')
 
   const weekTasks:   TaskMap = weekResult.data ?? {}
   const inboxTasks:  Task[]  = inboxResult.data ?? []
-  const somedayTasks: Task[] = somedayResult.data ?? []
 
   // Build TaskMap shapes for views that expect it
   const inboxMap:   TaskMap = { __inbox: inboxTasks }
-  const somedayMap: TaskMap = { __someday: somedayTasks }
 
   // Sidebar needs a merged map for the mini-calendar density
-  const sidebarMap: TaskMap = { ...weekTasks, __inbox: inboxTasks, __someday: somedayTasks }
+  const sidebarMap: TaskMap = { ...weekTasks, __inbox: inboxTasks }
 
   // ---- Mutations ----
 
@@ -123,13 +120,13 @@ export default function App() {
   const moveTask   = useMoveTask()
 
   function handleAddTask(bucketKey: string, title: string, slot: 'am' | 'pm' = 'am') {
-    const tasksInBucket = weekTasks[bucketKey] ?? inboxTasks ?? somedayTasks ?? []
+    const tasksInBucket = weekTasks[bucketKey] ?? inboxTasks ?? []
     const position = tasksInBucket.length
     createTask.mutate({ title, bucketKey, slot, position })
   }
 
   function handleAddBucketTask(bucketKey: string, title: string) {
-    const list = bucketKey === '__inbox' ? inboxTasks : somedayTasks
+    const list = inboxTasks
     createTask.mutate({ title, bucketKey, position: list.length })
   }
 
@@ -159,11 +156,10 @@ export default function App() {
     const allTasks = [
       ...Object.values(weekTasks).flat(),
       ...inboxTasks,
-      ...somedayTasks,
     ]
     const task = allTasks.find(t => t.id === id)
     if (!task || task.bucketKey === bucketKey) return
-    const targetList = weekTasks[bucketKey] ?? (bucketKey === '__inbox' ? inboxTasks : somedayTasks)
+    const targetList = weekTasks[bucketKey] ?? inboxTasks
     moveTask.mutate({ id, bucketKey, position: targetList.length })
   }
 
@@ -179,7 +175,6 @@ export default function App() {
     const allTasks = [
       ...Object.values(weekTasks).flat(),
       ...inboxTasks,
-      ...somedayTasks,
     ]
     setDraggingTask(allTasks.find(t => t.id === id) ?? null)
   }
@@ -195,30 +190,29 @@ export default function App() {
     const allTasks = [
       ...Object.values(weekTasks).flat(),
       ...inboxTasks,
-      ...somedayTasks,
     ]
 
     const task = allTasks.find(t => t.id === taskId)
     if (!task) return
 
     // Determine target bucket
-    const isBucketKey = /^\d{4}-\d{2}-\d{2}$/.test(overId) || overId.startsWith('__')
+    const isBucketKey = /^\d{4}-\d{2}-\d{2}$/.test(overId) || overId.startsWith('weeklist-') || overId.startsWith('__')
 
     if (isBucketKey) {
       if (task.bucketKey === overId) return
-      const targetList = weekTasks[overId] ?? (overId === '__inbox' ? inboxTasks : somedayTasks)
+      const targetList = weekTasks[overId] ?? inboxTasks
       moveTask.mutate({ id: taskId, bucketKey: overId, position: targetList.length })
     } else {
       // Dropped over another task — find its bucket and position
       const overTask = allTasks.find(t => t.id === overId)
       if (!overTask) return
       const targetBucket = overTask.bucketKey
-      const targetList = weekTasks[targetBucket] ?? (targetBucket === '__inbox' ? inboxTasks : somedayTasks)
+      const targetList = weekTasks[targetBucket] ?? inboxTasks
       const overIndex = targetList.findIndex(t => t.id === overId)
       const newPosition = overIndex >= 0 ? overIndex : targetList.length
       moveTask.mutate({ id: taskId, bucketKey: targetBucket, position: newPosition })
     }
-  }, [weekTasks, inboxTasks, somedayTasks, moveTask])
+  }, [weekTasks, inboxTasks, moveTask])
 
   // ---- Shared props ----
 
@@ -236,10 +230,7 @@ export default function App() {
           view={view} onViewChange={setView}
           activeWeekStart={weekStart} onWeekSelect={setWeekStart}
           taskMap={sidebarMap}
-          showWeekend={showWeekend} onToggleWeekend={setShowWeekend}
-          dark={dark} onToggleDark={setDark}
-          variant={variant}
-          onToggleVariant={() => setVariant(v => v === 'manifesto' ? 'quiet' : v === 'quiet' ? 'columns' : 'manifesto')}
+          showWeekend={showWeekend}
           accent={accent}
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed(v => !v)}
@@ -252,7 +243,10 @@ export default function App() {
               tasks={weekTasks}
               variant={variant}
               showWeekend={showWeekend}
+              dark={dark}
               onChangeVariant={setVariant}
+              onToggleWeekend={() => setShowWeekend(s => !s)}
+              onToggleDark={() => setDark(d => !d)}
               onPrevWeek={() => setWeekStart(w => addDays(w, -7))}
               onNextWeek={() => setWeekStart(w => addDays(w, 7))}
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
@@ -268,17 +262,6 @@ export default function App() {
               subtitle="Sem data · capture rápido"
               bucket="__inbox"
               tasks={inboxMap}
-              onAddTask={handleAddBucketTask}
-              {...sharedDayProps}
-            />
-          )}
-
-          {view === 'someday' && (
-            <ListView
-              title="alguma hora"
-              subtitle="Sem compromisso · talvez um dia"
-              bucket="__someday"
-              tasks={somedayMap}
               onAddTask={handleAddBucketTask}
               {...sharedDayProps}
             />

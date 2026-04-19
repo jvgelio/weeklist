@@ -34,7 +34,55 @@ export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: api.createTask,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+    onMutate: async (newTaskParams) => {
+      await qc.cancelQueries({ queryKey: ['tasks'] })
+      const snapshot = qc.getQueriesData({ queryKey: ['tasks'] })
+      
+      const tempId = `temp-${Date.now()}`
+      const tempTask: Task = {
+        id: tempId,
+        title: newTaskParams.title,
+        done: false,
+        bucketKey: newTaskParams.bucketKey,
+        slot: (newTaskParams.slot as 'am' | 'pm' | undefined) ?? null,
+        priority: null,
+        recurring: null,
+        tags: [],
+        note: null,
+        position: newTaskParams.position ?? 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        subtasks: []
+      }
+
+      // Optimistically update week queries
+      const weekQueries = qc.getQueriesData<TaskMap>({ queryKey: ['tasks', 'week'] })
+      for (const [key, data] of weekQueries) {
+        if (!data) continue
+        const newMap: TaskMap = { ...data }
+        newMap[tempTask.bucketKey] = [...(newMap[tempTask.bucketKey] ?? []), tempTask]
+        qc.setQueryData(key, newMap)
+      }
+
+      // Optimistically update bucket queries
+      const bucketQueries = qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'bucket'] })
+      for (const [key, data] of bucketQueries) {
+        if (!data) continue
+        if (key[2] === tempTask.bucketKey) {
+          qc.setQueryData(key, [...data, tempTask])
+        }
+      }
+
+      return { snapshot }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.snapshot) {
+        for (const [key, data] of ctx.snapshot) {
+          qc.setQueryData(key, data)
+        }
+      }
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 }
 

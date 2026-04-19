@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import { addDays, isoDate, sameDay, startOfWeek, MONTH_PT } from '../lib/constants'
 import type { View, Variant, TaskMap } from '../lib/types'
 
@@ -33,55 +34,14 @@ function IconSomeday({ size = 14 }: IconProps) {
   )
 }
 
-// ---- Toggle ----
+// ---- getWeekNumber ----
 
-interface ToggleProps {
-  on: boolean
-  onChange: (v: boolean) => void
-}
-
-function Toggle({ on, onChange }: ToggleProps) {
-  return (
-    <button
-      onClick={() => onChange(!on)}
-      style={{
-        width: 30, height: 18, borderRadius: 9999,
-        background: on ? 'var(--accent)' : 'var(--line-strong)',
-        border: 'none', padding: 0, position: 'relative',
-        transition: 'background 150ms ease',
-        cursor: 'pointer', flexShrink: 0,
-      }}
-    >
-      <span style={{
-        position: 'absolute', top: 2,
-        left: on ? 14 : 2,
-        width: 14, height: 14, borderRadius: 9999,
-        background: on ? 'var(--accent-ink)' : 'var(--bg-raised)',
-        transition: 'left 150ms ease',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-      }} />
-    </button>
-  )
-}
-
-// ---- ToggleRow ----
-
-interface ToggleRowProps {
-  label: string
-  on: boolean
-  onChange: (v: boolean) => void
-}
-
-function ToggleRow({ label, on, onChange }: ToggleRowProps) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      fontSize: 12, color: 'var(--ink-soft)', padding: '2px 0',
-    }}>
-      <span>{label}</span>
-      <Toggle on={on} onChange={onChange} />
-    </div>
-  )
+function getWeekNumber(d: Date) {
+  const date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 }
 
 // ---- MiniWeekStrip ----
@@ -100,30 +60,46 @@ function MiniWeekStrip({ weekStart, isActive, onSelect, taskCountByDay, showWeek
   const visibleDays = showWeekend ? days : days.filter(d => d.getDay() !== 0 && d.getDay() !== 6)
   const end = addDays(weekStart, 6)
   const label = `${weekStart.getDate()} ${MONTH_PT[weekStart.getMonth()]} — ${end.getDate()} ${MONTH_PT[end.getMonth()]}`
+  const weekNum = getWeekNumber(weekStart)
+
+  const bucketKey = `weeklist-${isoDate(weekStart)}`
+  const { setNodeRef, isOver } = useDroppable({ id: bucketKey })
 
   return (
     <button
+      ref={setNodeRef}
       onClick={onSelect}
       style={{
         display: 'flex', flexDirection: 'column', gap: 6,
         padding: '10px 12px',
         borderRadius: 14,
-        background: isActive ? 'var(--bg-raised)' : 'transparent',
+        background: isOver ? 'var(--accent-soft)' : isActive ? 'var(--bg-raised)' : 'transparent',
         boxShadow: isActive ? 'var(--ring)' : 'none',
-        border: 'none', textAlign: 'left',
+        border: isOver ? '1px dashed var(--accent)' : '1px dashed transparent',
+        textAlign: 'left',
         cursor: 'pointer',
         transition: 'background 120ms ease',
         width: '100%',
       }}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--line)' }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+      onMouseEnter={e => { if (!isActive && !isOver) e.currentTarget.style.background = 'var(--line)' }}
+      onMouseLeave={e => { if (!isActive && !isOver) e.currentTarget.style.background = 'transparent' }}
     >
       <div style={{
-        fontSize: 11, fontWeight: 600,
-        color: isActive ? 'var(--ink)' : 'var(--ink-mute)',
-        letterSpacing: '-0.01em',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
-        {label}
+        <div style={{
+          fontSize: 11, fontWeight: 600,
+          color: isActive ? 'var(--ink)' : 'var(--ink-mute)',
+          letterSpacing: '-0.01em',
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+          textTransform: 'uppercase', color: 'var(--ink-faint)'
+        }}>
+          W{weekNum}
+        </div>
       </div>
       <div style={{ display: 'flex', gap: 3 }}>
         {visibleDays.map((d, i) => {
@@ -200,11 +176,6 @@ export interface SidebarProps {
   onWeekSelect: (date: Date) => void
   taskMap: TaskMap
   showWeekend: boolean
-  onToggleWeekend: (v: boolean) => void
-  dark: boolean
-  onToggleDark: (v: boolean) => void
-  variant: Variant
-  onToggleVariant: () => void
   accent: string
   collapsed: boolean
   onToggleCollapsed: () => void
@@ -213,9 +184,7 @@ export interface SidebarProps {
 export function Sidebar({
   view, onViewChange,
   activeWeekStart, onWeekSelect,
-  taskMap, showWeekend, onToggleWeekend,
-  dark, onToggleDark,
-  variant, onToggleVariant,
+  taskMap, showWeekend,
   accent,
   collapsed, onToggleCollapsed,
 }: SidebarProps) {
@@ -240,7 +209,6 @@ export function Sidebar({
   }, [taskMap])
 
   const inboxCount   = taskMap.__inbox?.length || 0
-  const somedayCount = taskMap.__someday?.length || 0
 
   return (
     <aside style={{
@@ -298,10 +266,6 @@ export function Sidebar({
           collapsed={collapsed} icon={<IconInbox />} label="Inbox" count={inboxCount}
           active={view === 'inbox'} onClick={() => onViewChange('inbox')} accent={accent}
         />
-        <ViewButton
-          collapsed={collapsed} icon={<IconSomeday />} label="Alguma hora" count={somedayCount}
-          active={view === 'someday'} onClick={() => onViewChange('someday')} accent={accent}
-        />
       </div>
 
       {collapsed && <div style={{ flex: 1 }} />}
@@ -342,29 +306,6 @@ export function Sidebar({
         </div>
       )}
 
-      {/* Footer controls */}
-      {!collapsed && (
-        <div style={{
-          borderTop: '1px solid var(--line)',
-          padding: '12px 14px',
-          display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0,
-        }}>
-          <ToggleRow label="Fim de semana" on={showWeekend} onChange={onToggleWeekend} />
-          <ToggleRow label="Modo escuro" on={dark} onChange={onToggleDark} />
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            fontSize: 12, color: 'var(--ink-soft)', padding: '2px 0',
-          }}>
-            <span>Layout</span>
-            <button onClick={onToggleVariant} className="ghost-btn" style={{
-              padding: '3px 10px', fontSize: 11, fontWeight: 600,
-              background: 'var(--bg-raised)', boxShadow: 'var(--ring)',
-            }}>
-              {variant === 'manifesto' ? 'Editorial' : variant === 'quiet' ? 'Quieto' : 'Colunas'}
-            </button>
-          </div>
-        </div>
-      )}
     </aside>
   )
 }

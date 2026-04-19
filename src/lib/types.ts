@@ -22,8 +22,8 @@ export interface Task {
   subtasks: Subtask[]
 }
 
-export type View = 'week' | 'inbox' | 'someday'
-export type Variant = 'manifesto' | 'quiet' | 'columns'
+export type View = 'week' | 'inbox'
+export type Variant = 'quiet' | 'columns'
 export type Slot = 'am' | 'pm'
 export type Priority = 'high' | 'med' | 'low'
 export type Recurring = 'daily' | 'weekly' | 'monthly'

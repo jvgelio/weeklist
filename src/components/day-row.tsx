@@ -10,7 +10,7 @@ import { TaskRow, InlineAdd, LunchDivider, IconSun } from './task-components'
 interface DayRowProps {
   date: Date
   tasks: Task[]
-  variant?: 'manifesto' | 'quiet'
+  variant?: 'quiet'
   isToday: boolean
   isWeekend: boolean
   compact?: boolean
@@ -22,7 +22,7 @@ interface DayRowProps {
 }
 
 export function DayRow({
-  date, tasks, variant = 'manifesto', isToday, isWeekend, compact = false,
+  date, tasks, variant = 'quiet', isToday, isWeekend, compact = false,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: DayRowProps) {
@@ -37,89 +37,12 @@ export function DayRow({
   const pmTasks = tasks.filter(t => t.slot === 'pm')
   const completed = tasks.filter(t => t.done).length
   const total     = tasks.length
-  const allDone   = total > 0 && completed === total
 
   const taskProps = {
     accent,
     onOpen: onOpenTask,
     onChange: onUpdateTask,
     onDelete: onDeleteTask,
-  }
-
-  /* ---- Manifesto ---- */
-  if (variant === 'manifesto') {
-    return (
-      <section
-        ref={setNodeRef}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: compact ? '140px 1fr' : '180px 1fr',
-          gap: compact ? 16 : 32,
-          padding: compact ? '20px 0' : '28px 0',
-          borderTop: '1px solid var(--line)',
-          background: isOver ? 'var(--accent-soft)' : 'transparent',
-          borderRadius: isOver ? 12 : 0,
-          transition: 'background 120ms ease',
-        }}
-      >
-        {/* Day label */}
-        <div style={{ paddingTop: 2 }}>
-          <div style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: compact ? 38 : 52,
-            fontWeight: 400, fontStyle: 'italic',
-            lineHeight: 0.95, letterSpacing: '-0.015em',
-            color: isWeekend && !isToday ? 'var(--ink-mute)' : 'var(--ink)',
-          }}>
-            {dayName.toLowerCase()}
-          </div>
-          <div style={{
-            marginTop: 10, display: 'flex', alignItems: 'center', gap: 10,
-            fontSize: 11, fontWeight: 500, color: 'var(--ink-mute)',
-          }}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>
-              {String(dayNum).padStart(2, '0')}·{MONTH_PT[date.getMonth()]}
-            </span>
-            {total > 0 && (
-              <span style={{
-                fontSize: 10, fontWeight: 500,
-                color: allDone ? 'var(--accent)' : 'var(--ink-mute)',
-                fontFamily: 'var(--font-mono)',
-              }}>
-                {completed}/{total}
-              </span>
-            )}
-            {isToday && (
-              <span style={{
-                fontSize: 9, fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                color: 'var(--accent)',
-                borderTop: '1px solid var(--accent)',
-                borderBottom: '1px solid var(--accent)',
-                padding: '1px 6px',
-              }}>hoje</span>
-            )}
-          </div>
-        </div>
-
-        {/* Tasks (am + lunch divider + pm) */}
-        <div style={{ display: 'flex', flexDirection: 'column', paddingRight: 8 }}>
-          <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd onAdd={title => onAddTask(key, title, 'am')} placeholder={amTasks.length === 0 ? 'Manhã…' : '+'}/>
-            </div>
-          </SortableContext>
-          <LunchDivider/>
-          <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd onAdd={title => onAddTask(key, title, 'pm')} placeholder={pmTasks.length === 0 ? 'Tarde…' : '+'}/>
-            </div>
-          </SortableContext>
-        </div>
-      </section>
-    )
   }
 
   /* ---- Quiet (TeuxDeux) ---- */
@@ -231,24 +154,29 @@ export function DayColumn({
     <section
       ref={setNodeRef}
       style={{
-        flex: compact ? '0 0 200px' : '1 1 0',
-        minWidth: compact ? 200 : 170,
+        flex: compact ? '0 0 240px' : '1 1 0',
+        minWidth: compact ? 240 : 200,
         display: 'flex', flexDirection: 'column',
-        background: isToday ? 'var(--bg-raised)' : 'var(--bg-sunken)',
-        borderRadius: 14,
-        boxShadow: isToday ? 'var(--ring-strong)' : 'var(--ring)',
-        border: isOver ? `1.5px solid ${accent}` : '1.5px solid transparent',
-        transition: 'border 120ms ease',
+        background: isToday ? 'var(--bg-sunken)' : 'transparent',
+        borderRadius: 0,
+        boxShadow: 'none',
+        borderRight: '1px dashed var(--line)',
+        border: isOver ? `1px dashed ${accent}` : 'none',
+        borderRightStyle: isOver ? 'dashed' : 'dashed',
+        borderRightColor: isOver ? accent : 'var(--line)',
+        paddingRight: 16,
+        marginRight: 16,
+        transition: 'border 120ms ease, background 120ms ease',
         overflow: 'hidden',
         opacity: isWeekend && !isToday ? 0.88 : 1,
       }}
     >
       {/* Column header */}
       <div style={{
-        padding: '10px 12px 8px',
+        padding: '10px 0px 14px',
         borderBottom: '1px solid var(--line)',
         display: 'flex', alignItems: 'baseline', gap: 8,
-        background: isToday ? 'var(--bg-raised)' : 'transparent',
+        background: 'transparent',
         flexShrink: 0,
       }}>
         <span style={{
@@ -279,13 +207,13 @@ export function DayColumn({
 
       {/* Column content */}
       <div style={{
-        flex: 1, padding: '6px 6px 4px',
+        flex: 1, padding: '12px 0 4px',
         display: 'flex', flexDirection: 'column',
-        overflowY: 'auto', minHeight: 100,
+        overflowY: 'auto', minHeight: 100, gap: 4,
       }}>
         <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {amTasks.map(t => (
-            <div key={t.id} style={{ background: 'var(--bg)', borderRadius: 8, padding: 1, boxShadow: 'var(--ring)', marginBottom: 3 }}>
+            <div key={t.id}>
               <TaskRow task={t} {...taskProps}/>
             </div>
           ))}
@@ -303,7 +231,7 @@ export function DayColumn({
 
         <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
           {pmTasks.map(t => (
-            <div key={t.id} style={{ background: 'var(--bg)', borderRadius: 8, padding: 1, boxShadow: 'var(--ring)', marginBottom: 3 }}>
+            <div key={t.id}>
               <TaskRow task={t} {...taskProps}/>
             </div>
           ))}
@@ -336,7 +264,7 @@ export function WeekendStrip({
 
   return (
     <div style={{
-      marginTop: variant === 'manifesto' ? 32 : 16,
+      marginTop: 16,
       borderTop: '1px dashed var(--line-strong)',
       paddingTop: 16,
     }}>
@@ -481,6 +409,102 @@ function WeekendDayCell({
             <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
           </div>
         </SortableContext>
+      </div>
+    </div>
+  )
+}
+
+// ---- Weeklist Components ----
+
+interface WeeklistProps {
+  bucketKey: string
+  tasks: Task[]
+  accent?: string
+  onOpenTask: (task: Task) => void
+  onAddTask: (bucketKey: string, title: string, slot: 'am' | 'pm') => void
+  onUpdateTask: (task: Task) => void
+  onDeleteTask: (id: string) => void
+}
+
+export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: bucketKey })
+  const [expanded, setExpanded] = useState(false)
+  const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: true }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--line)', background: 'var(--bg-sunken)' }}>
+      <button onClick={() => setExpanded(e => !e)} className="ghost-btn" style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '8px', fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', gap: 6,
+      }}>
+        <span>Weeklist</span>
+        <span style={{
+          background: 'var(--line)', padding: '1px 6px', borderRadius: 999, fontSize: 9,
+        }}>{tasks.length}</span>
+      </button>
+      {expanded && (
+        <div ref={setNodeRef} style={{
+          padding: '16px 24px 24px', display: 'flex', flexWrap: 'wrap', gap: 16,
+          background: isOver ? 'var(--accent-soft)' : 'transparent',
+          minHeight: 100, transition: 'background 120ms ease',
+        }}>
+          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {tasks.map(t => (
+              <div key={t.id} style={{ flex: '1 1 200px', maxWidth: 300, background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}>
+                <TaskRow task={t} {...taskProps} />
+              </div>
+            ))}
+          </SortableContext>
+          <div style={{ flex: '1 1 200px', maxWidth: 300 }}>
+            <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: bucketKey })
+  const [expanded, setExpanded] = useState(true)
+  const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: true }
+
+  if (!expanded) {
+    return (
+      <div style={{ borderLeft: '1px solid var(--line)', background: 'var(--bg-sunken)', width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 16 }}>
+        <button onClick={() => setExpanded(true)} className="ghost-btn" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', gap: 6, padding: '16px 8px' }}>
+          Weeklist
+          <span style={{ background: 'var(--line)', padding: '2px 6px', borderRadius: 999, fontSize: 9 }}>{tasks.length}</span>
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      width: 320, flexShrink: 0, borderLeft: '1px solid var(--line)', background: 'var(--bg-sunken)',
+      display: 'flex', flexDirection: 'column'
+    }}>
+      <div style={{ padding: '16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Weeklist</div>
+        <button onClick={() => setExpanded(false)} className="ghost-btn" style={{ padding: '4px', color: 'var(--ink-mute)' }}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+        </button>
+      </div>
+      <div ref={setNodeRef} style={{
+        flex: 1, padding: '16px', overflowY: 'auto',
+        background: isOver ? 'var(--accent-soft)' : 'transparent',
+        transition: 'background 120ms ease',
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}>
+        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {tasks.map(t => (
+            <div key={t.id} style={{ background: 'var(--bg)', padding: 4, borderRadius: 8, boxShadow: 'var(--ring)' }}>
+              <TaskRow task={t} {...taskProps} />
+            </div>
+          ))}
+        </SortableContext>
+        <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />
       </div>
     </div>
   )

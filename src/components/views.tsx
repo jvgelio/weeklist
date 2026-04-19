@@ -4,6 +4,7 @@ import type { Task, TaskMap, Variant } from '../lib/types'
 import {
   DayRow, DayColumn,
   WeekendStrip, WeekendColumnsStrip,
+  WeeklistStrip, WeeklistPanel,
 } from './day-row'
 import { IconArrow, TaskRow, InlineAdd } from './task-components'
 
@@ -18,7 +19,6 @@ interface ViewModeToggleProps {
 
 export function ViewModeToggle({ variant, onChange }: ViewModeToggleProps) {
   const opts: { id: Variant; label: string }[] = [
-    { id: 'manifesto', label: 'Editorial' },
     { id: 'quiet',     label: 'Quieto'    },
     { id: 'columns',   label: 'Colunas'   },
   ]
@@ -54,6 +54,7 @@ interface WeekViewProps {
   tasks: TaskMap
   variant: Variant
   showWeekend: boolean
+  dark: boolean
   accent: string
   onOpenTask: (task: Task) => void
   onAddTask: (bucketKey: string, title: string, slot: 'am' | 'pm') => void
@@ -64,14 +65,16 @@ interface WeekViewProps {
   onNextWeek: () => void
   onToday: () => void
   onChangeVariant: (v: Variant) => void
+  onToggleWeekend: () => void
+  onToggleDark: () => void
 }
 
 export function WeekView({
-  weekStart, tasks, variant, showWeekend,
+  weekStart, tasks, variant, showWeekend, dark,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, onMoveTask,
   onPrevWeek, onNextWeek, onToday,
-  onChangeVariant,
+  onChangeVariant, onToggleWeekend, onToggleDark,
 }: WeekViewProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const visibleDays = showWeekend ? days : days.filter(d => d.getDay() !== 0 && d.getDay() !== 6)
@@ -101,7 +104,10 @@ export function WeekView({
   }
 
   const isColumns = variant === 'columns'
-  const sidePad   = isColumns ? '0 24px 24px' : variant === 'manifesto' ? '0 48px 120px' : '0 32px 120px'
+  const sidePad   = isColumns ? '0 24px 24px' : '0 32px 120px'
+
+  const weeklistKey = `weeklist-${isoDate(weekStart)}`
+  const weeklistTasks = tasks[weeklistKey] ?? []
 
   const dayProps = {
     accent,
@@ -115,7 +121,7 @@ export function WeekView({
     <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
-        padding: isColumns ? '24px 24px 16px' : variant === 'manifesto' ? '32px 48px 20px' : '24px 32px 16px',
+        padding: isColumns ? '24px 24px 16px' : '24px 32px 16px',
         flexShrink: 0,
       }}>
         <header style={{
@@ -128,7 +134,7 @@ export function WeekView({
               fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 5,
             }}>Semana</div>
-            {isColumns || variant === 'manifesto' ? (
+            {isColumns ? (
               <h1 style={{
                 margin: 0, fontFamily: 'var(--font-display)',
                 fontSize: 32, fontWeight: 400, fontStyle: 'italic',
@@ -158,6 +164,13 @@ export function WeekView({
             </button>
             <button className="ghost-btn" onClick={onNextWeek} title="Próxima semana (→)">
               <IconArrow dir="right"/>
+            </button>
+            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }}/>
+            <button className="ghost-btn" onClick={onToggleWeekend} style={{ fontSize: 11, fontWeight: 600 }}>
+              {showWeekend ? 'Ocultar FDS' : 'Mostrar FDS'}
+            </button>
+            <button className="ghost-btn" onClick={onToggleDark} style={{ fontSize: 11, fontWeight: 600 }}>
+              {dark ? 'Claro' : 'Escuro'}
             </button>
             <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }}/>
             <ViewModeToggle variant={variant} onChange={onChangeVariant}/>
@@ -221,29 +234,35 @@ export function WeekView({
           )}
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: variant === 'quiet' ? 12 : 0 }}>
-            {visibleDays.map(d => {
-              const key = isoDate(d)
-              return (
-                <DayRow
-                  key={key} date={d}
-                  tasks={tasks[key] ?? []}
-                  variant={variant}
-                  isToday={sameDay(d, TODAY)}
-                  isWeekend={d.getDay() === 0 || d.getDay() === 6}
-                  {...dayProps}
-                />
-              )
-            })}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: variant === 'quiet' ? 12 : 0 }}>
+              {visibleDays.map(d => {
+                const key = isoDate(d)
+                return (
+                  <DayRow
+                    key={key} date={d}
+                    tasks={tasks[key] ?? []}
+                    variant={variant}
+                    isToday={sameDay(d, TODAY)}
+                    isWeekend={d.getDay() === 0 || d.getDay() === 6}
+                    {...dayProps}
+                  />
+                )
+              })}
+            </div>
+            {!showWeekend && (
+              <WeekendStrip
+                days={weekend} tasks={tasks} variant={variant}
+                {...dayProps}
+              />
+            )}
           </div>
-          {!showWeekend && (
-            <WeekendStrip
-              days={weekend} tasks={tasks} variant={variant}
-              {...dayProps}
-            />
-          )}
+          <WeeklistPanel bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
         </div>
+      )}
+      {isColumns && (
+        <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
       )}
     </div>
   )

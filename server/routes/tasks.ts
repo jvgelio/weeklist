@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
-import { sql, eq, and, gte, lte, gt, lt, inArray } from 'drizzle-orm'
+import { sql, eq, and, or, gte, lte, gt, lt, inArray } from 'drizzle-orm'
+import { randomUUID } from 'node:crypto'
 import { db } from '../db/client.js'
 import { tasks, subtasks } from '../db/schema.js'
 
@@ -45,7 +46,10 @@ tasksRouter.get('/', async (c) => {
 
   if (from && to) {
     taskList = await db.select().from(tasks)
-      .where(and(gte(tasks.bucketKey, from), lte(tasks.bucketKey, to)))
+      .where(or(
+        and(gte(tasks.bucketKey, from), lte(tasks.bucketKey, to)),
+        eq(tasks.bucketKey, `weeklist-${from}`)
+      ))
       .orderBy(tasks.position)
   } else if (bucket) {
     taskList = await db.select().from(tasks)
@@ -72,7 +76,7 @@ tasksRouter.post('/', async (c) => {
     return c.json({ error: 'title, bucketKey, and position are required' }, 400)
   }
 
-  const id = crypto.randomUUID()
+  const id = randomUUID()
   const now = new Date()
 
   await db.insert(tasks).values({
