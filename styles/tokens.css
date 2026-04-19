@@ -113,9 +113,9 @@ input, textarea { font-family: inherit; color: inherit; }
   color: var(--ink-soft);
 }
 
-.task-row.hover .row-actions { opacity: 1; }
-.task-row.hover .drag-handle { opacity: 1; }
-.task-row.hover { background: var(--line) !important; }
+.task-row:hover .row-actions { opacity: 1; }
+.task-row:hover .drag-handle { opacity: 1; }
+.task-row:hover { background: var(--line) !important; }
 .add-row:hover { color: var(--ink-soft) !important; background: var(--line) !important; }
 
 ::selection { background: var(--accent); color: var(--accent-ink); }

@@ -214,11 +214,7 @@ function DayColumnComponent({
         overflowY: 'auto', minHeight: 100, gap: 4,
       }}>
         <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {amTasks.map(t => (
-            <div key={t.id}>
-              <TaskRow task={t} {...taskProps}/>
-            </div>
-          ))}
+          {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
         </SortableContext>
         <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
 
@@ -232,11 +228,7 @@ function DayColumnComponent({
         </div>
 
         <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {pmTasks.map(t => (
-            <div key={t.id}>
-              <TaskRow task={t} {...taskProps}/>
-            </div>
-          ))}
+          {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
         </SortableContext>
         <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
       </div>

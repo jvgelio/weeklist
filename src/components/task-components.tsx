@@ -285,6 +285,7 @@ function TaskRowComponent({
     <div
       ref={setNodeRef}
       {...attributes}
+      {...(!showDragHandle ? listeners : {})}
       className="task-row"
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -293,9 +294,10 @@ function TaskRowComponent({
         opacity: isDragging ? 0.35 : 1,
         background: 'transparent',
         position: 'relative',
-        cursor: editing ? 'text' : 'default',
+        cursor: editing ? 'text' : (!showDragHandle ? 'grab' : 'default'),
         transform: CSS.Transform.toString(transform),
         transition,
+        touchAction: !showDragHandle ? 'none' : undefined,
       }}
     >
       {showDragHandle && (
