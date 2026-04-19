@@ -247,7 +247,7 @@ interface TaskRowProps {
   showDragHandle?: boolean
 }
 
-export function TaskRow({
+function TaskRowComponent({
   task, onChange, onDelete, onOpen,
   accent, compact = false, showDragHandle = true,
 }: TaskRowProps) {
@@ -439,6 +439,51 @@ export function TaskRow({
   )
 }
 
+function areTasksEqual(a: Task, b: Task): boolean {
+  if (a === b) return true
+  if (a.id !== b.id) return false
+  if (a.title !== b.title) return false
+  if (a.done !== b.done) return false
+  if (a.bucketKey !== b.bucketKey) return false
+  if (a.slot !== b.slot) return false
+  if (a.priority !== b.priority) return false
+  if (a.recurring !== b.recurring) return false
+  if (a.note !== b.note) return false
+  if (a.position !== b.position) return false
+  if (a.updatedAt !== b.updatedAt) return false
+  if (a.tags.length !== b.tags.length) return false
+  if (a.subtasks.length !== b.subtasks.length) return false
+
+  for (let i = 0; i < a.tags.length; i++) {
+    if (a.tags[i] !== b.tags[i]) return false
+  }
+
+  for (let i = 0; i < a.subtasks.length; i++) {
+    const left = a.subtasks[i]
+    const right = b.subtasks[i]
+    if (left.id !== right.id) return false
+    if (left.title !== right.title) return false
+    if (left.done !== right.done) return false
+    if (left.position !== right.position) return false
+  }
+
+  return true
+}
+
+function areTaskRowPropsEqual(prev: TaskRowProps, next: TaskRowProps): boolean {
+  return (
+    prev.onChange === next.onChange
+    && prev.onDelete === next.onDelete
+    && prev.onOpen === next.onOpen
+    && prev.accent === next.accent
+    && prev.compact === next.compact
+    && prev.showDragHandle === next.showDragHandle
+    && areTasksEqual(prev.task, next.task)
+  )
+}
+
+export const TaskRow = React.memo(TaskRowComponent, areTaskRowPropsEqual)
+
 // ---- InlineAdd ----
 
 interface InlineAddProps {
@@ -451,7 +496,7 @@ interface InlineAddProps {
 
 export function InlineAdd({
   onAdd,
-  placeholder = 'Nova tarefa…',
+  placeholder = 'Nova tarefa...',
   accent,
   compact = false,
   autofocus = false,
@@ -459,12 +504,22 @@ export function InlineAdd({
   const [active, setActive] = useState(autofocus)
   const [draft, setDraft] = useState('')
   const ref = useRef<HTMLInputElement>(null)
+  const ignoreNextBlur = useRef(false)
+  const lastCommitRef = useRef<{ value: string; at: number } | null>(null)
 
   useEffect(() => { if (active && ref.current) ref.current.focus() }, [active])
 
   function commit(keepOpen = false) {
     const v = draft.trim()
-    if (v) onAdd(v)
+    if (v) {
+      const now = performance.now()
+      const last = lastCommitRef.current
+      const isDuplicate = Boolean(last && last.value === v && (now - last.at) < 200)
+      if (!isDuplicate) {
+        onAdd(v)
+        lastCommitRef.current = { value: v, at: now }
+      }
+    }
     setDraft('')
     if (!keepOpen) setActive(false)
   }
@@ -513,9 +568,19 @@ export function InlineAdd({
         ref={ref}
         value={draft}
         onChange={e => setDraft(e.target.value)}
-        onBlur={() => commit(false)}
+        onBlur={() => {
+          if (ignoreNextBlur.current) {
+            ignoreNextBlur.current = false
+            return
+          }
+          commit(false)
+        }}
         onKeyDown={e => {
-          if (e.key === 'Enter') { e.preventDefault(); commit(e.shiftKey) }
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            ignoreNextBlur.current = true
+            commit(e.shiftKey)
+          }
           if (e.key === 'Escape') { setDraft(''); setActive(false) }
         }}
         placeholder="Digite e Enter (Shift+Enter pra adicionar outra)"
@@ -528,7 +593,6 @@ export function InlineAdd({
     </div>
   )
 }
-
 // ---- LunchDivider ----
 
 export function LunchDivider() {
@@ -555,3 +619,4 @@ export function LunchDivider() {
     </div>
   )
 }
+

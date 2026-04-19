@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, isoDate, sameDay } from '../lib/constants'
@@ -21,7 +21,7 @@ interface DayRowProps {
   onDeleteTask: (id: string) => void
 }
 
-export function DayRow({
+function DayRowComponent({
   date, tasks, variant = 'quiet', isToday, isWeekend, compact = false,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
@@ -33,10 +33,10 @@ export function DayRow({
   const dayName = DAY_NAMES_LONG_PT[dayIdx]
   const dayNum  = date.getDate()
 
-  const amTasks = tasks.filter(t => t.slot !== 'pm')
-  const pmTasks = tasks.filter(t => t.slot === 'pm')
-  const completed = tasks.filter(t => t.done).length
-  const total     = tasks.length
+  const amTasks = useMemo(() => tasks.filter((t) => t.slot !== 'pm'), [tasks])
+  const pmTasks = useMemo(() => tasks.filter((t) => t.slot === 'pm'), [tasks])
+  const completed = useMemo(() => tasks.filter((t) => t.done).length, [tasks])
+  const total = tasks.length
 
   const taskProps = {
     accent,
@@ -109,6 +109,8 @@ export function DayRow({
   )
 }
 
+export const DayRow = React.memo(DayRowComponent)
+
 // ---- DayColumn (columns/kanban variant) ----
 
 interface DayColumnProps {
@@ -124,7 +126,7 @@ interface DayColumnProps {
   onDeleteTask: (id: string) => void
 }
 
-export function DayColumn({
+function DayColumnComponent({
   date, tasks, isToday, isWeekend = false, compact = false,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
@@ -136,10 +138,10 @@ export function DayColumn({
   const dayShort = DAY_NAMES_PT[dayIdx]
   const dayNum   = date.getDate()
 
-  const amTasks = tasks.filter(t => t.slot !== 'pm')
-  const pmTasks = tasks.filter(t => t.slot === 'pm')
-  const completed = tasks.filter(t => t.done).length
-  const total     = tasks.length
+  const amTasks = useMemo(() => tasks.filter((t) => t.slot !== 'pm'), [tasks])
+  const pmTasks = useMemo(() => tasks.filter((t) => t.slot === 'pm'), [tasks])
+  const completed = useMemo(() => tasks.filter((t) => t.done).length, [tasks])
+  const total = tasks.length
 
   const taskProps = {
     accent,
@@ -241,6 +243,8 @@ export function DayColumn({
     </section>
   )
 }
+
+export const DayColumn = React.memo(DayColumnComponent)
 
 // ---- WeekendStrip (row variants) ----
 

@@ -2,16 +2,52 @@ import type { Task } from './types'
 
 const BASE = '/api'
 
-export async function fetchTasksForWeek(from: string, to: string): Promise<Task[]> {
-  const res = await fetch(`${BASE}/tasks?from=${from}&to=${to}`)
-  if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`)
-  return res.json()
+interface FetchTasksOptions {
+  includeSubtasks?: boolean
 }
 
-export async function fetchTasksByBucket(bucket: string): Promise<Task[]> {
-  const res = await fetch(`${BASE}/tasks?bucket=${encodeURIComponent(bucket)}`)
+type TaskResponse = Omit<Task, 'subtasks'> & { subtasks?: Task['subtasks'] }
+
+function normalizeTask(task: TaskResponse): Task {
+  return {
+    ...task,
+    subtasks: task.subtasks ?? [],
+  }
+}
+
+export async function fetchTasksForWeek(
+  from: string,
+  to: string,
+  signal?: AbortSignal,
+  opts?: FetchTasksOptions,
+): Promise<Task[]> {
+  const params = new URLSearchParams({ from, to })
+  if (opts?.includeSubtasks) params.set('includeSubtasks', 'true')
+
+  const res = await fetch(`${BASE}/tasks?${params.toString()}`, { signal })
   if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`)
-  return res.json()
+  const tasks = (await res.json()) as TaskResponse[]
+  return tasks.map(normalizeTask)
+}
+
+export async function fetchTasksByBucket(
+  bucket: string,
+  signal?: AbortSignal,
+  opts?: FetchTasksOptions,
+): Promise<Task[]> {
+  const params = new URLSearchParams({ bucket })
+  if (opts?.includeSubtasks) params.set('includeSubtasks', 'true')
+
+  const res = await fetch(`${BASE}/tasks?${params.toString()}`, { signal })
+  if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.status}`)
+  const tasks = (await res.json()) as TaskResponse[]
+  return tasks.map(normalizeTask)
+}
+
+export async function fetchTaskById(id: string, signal?: AbortSignal): Promise<Task> {
+  const res = await fetch(`${BASE}/tasks/${id}`, { signal })
+  if (!res.ok) throw new Error(`Failed to fetch task: ${res.status}`)
+  return normalizeTask((await res.json()) as TaskResponse)
 }
 
 export async function createTask(data: {
@@ -26,7 +62,7 @@ export async function createTask(data: {
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`Failed to create task: ${res.status}`)
-  return res.json()
+  return normalizeTask((await res.json()) as TaskResponse)
 }
 
 export async function updateTask(
@@ -39,7 +75,7 @@ export async function updateTask(
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`Failed to update task: ${res.status}`)
-  return res.json()
+  return normalizeTask((await res.json()) as TaskResponse)
 }
 
 export async function moveTask(
@@ -52,7 +88,7 @@ export async function moveTask(
     body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error(`Failed to move task: ${res.status}`)
-  return res.json()
+  return normalizeTask((await res.json()) as TaskResponse)
 }
 
 export async function deleteTask(id: string): Promise<void> {

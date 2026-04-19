@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { TAGS } from '../lib/constants'
 import type { Task, Subtask } from '../lib/types'
 import { IconPlus, IconTrash, Checkbox } from './task-components'
@@ -35,18 +35,30 @@ function EditorField({ label, children }: EditorFieldProps) {
   )
 }
 
-// ---- TaskEditor ----
+type TextPatch = Partial<Pick<Task, 'title' | 'note'>>
 
+// TaskEditor
 export interface TaskEditorProps {
   task: Task
   accent: string
   onChange: (task: Task) => void
+  onTextChange: (taskId: string, patch: TextPatch) => void
+  onFlushText: (taskId: string) => void
   onDelete: (id: string) => void
   onClose: () => void
   onMoveTask: (id: string, bucketKey: string) => void
 }
 
-export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTask }: TaskEditorProps) {
+export function TaskEditor({
+  task,
+  accent,
+  onChange,
+  onTextChange,
+  onFlushText,
+  onDelete,
+  onClose,
+  onMoveTask,
+}: TaskEditorProps) {
   const [draft, setDraft] = useState<Task>(task)
   const titleRef = useRef<HTMLInputElement>(null)
 
@@ -54,23 +66,37 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
     if (titleRef.current) titleRef.current.focus()
   }, [])
 
-  // Keep draft in sync if parent pushes updates (e.g. checkbox elsewhere)
   useEffect(() => {
-    setDraft(task)
-  }, [task.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    setDraft((current) => {
+      if (current.id !== task.id) return task
+      if (current.subtasks.length === 0 && task.subtasks.length > 0) {
+        return { ...current, subtasks: task.subtasks }
+      }
+      return current
+    })
+  }, [task])
 
-  // Derive the date value from bucketKey (ISO date string, not __inbox/__someday)
   const dateValue = draft.bucketKey.startsWith('__') ? '' : draft.bucketKey
 
-  function update(patch: Partial<Task>) {
+  const flushText = useCallback(() => {
+    onFlushText(draft.id)
+  }, [draft.id, onFlushText])
+
+  function updateImmediate(patch: Partial<Task>) {
     const next = { ...draft, ...patch }
     setDraft(next)
     onChange(next)
   }
 
+  function updateText(patch: TextPatch) {
+    const next = { ...draft, ...patch }
+    setDraft(next)
+    onTextChange(draft.id, patch)
+  }
+
   function toggleTag(tag: string) {
     const has = draft.tags.includes(tag)
-    update({ tags: has ? draft.tags.filter(t => t !== tag) : [...draft.tags, tag] })
+    updateImmediate({ tags: has ? draft.tags.filter((t) => t !== tag) : [...draft.tags, tag] })
   }
 
   function addSubtask() {
@@ -81,22 +107,26 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
       done: false,
       position: draft.subtasks.length,
     }
-    update({ subtasks: [...draft.subtasks, newSub] })
+    updateImmediate({ subtasks: [...draft.subtasks, newSub] })
   }
 
   function updateSub(sid: string, patch: Partial<Subtask>) {
-    update({ subtasks: draft.subtasks.map(s => s.id === sid ? { ...s, ...patch } : s) })
+    updateImmediate({ subtasks: draft.subtasks.map((s) => s.id === sid ? { ...s, ...patch } : s) })
   }
 
   function removeSub(sid: string) {
-    update({ subtasks: draft.subtasks.filter(s => s.id !== sid) })
+    updateImmediate({ subtasks: draft.subtasks.filter((s) => s.id !== sid) })
   }
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      flushText()
+      onClose()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [flushText, onClose])
 
   return (
     <div
@@ -106,10 +136,10 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
         display: 'grid', placeItems: 'center',
         padding: 24,
       }}
-      onClick={onClose}
+      onClick={() => { flushText(); onClose() }}
     >
       <div
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 580,
           background: 'var(--bg-raised)',
@@ -120,16 +150,21 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           display: 'flex', flexDirection: 'column', gap: 20,
         }}
       >
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <span style={{ marginTop: 7, flexShrink: 0 }}>
-            <Checkbox checked={draft.done} onChange={v => update({ done: v })} accent={accent} />
+            <Checkbox checked={draft.done} onChange={(v) => updateImmediate({ done: v })} accent={accent} />
           </span>
           <input
             ref={titleRef}
             value={draft.title}
-            onChange={e => update({ title: e.target.value })}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onClose() } }}
+            onChange={(e) => updateText({ title: e.target.value })}
+            onBlur={flushText}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return
+              e.preventDefault()
+              flushText()
+              onClose()
+            }}
             placeholder="Nome da tarefa"
             style={{
               flex: 1, border: 'none', outline: 'none',
@@ -142,23 +177,20 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
               padding: 0,
             }}
           />
-          <button className="ghost-btn" onClick={onClose} style={{ padding: '4px 9px', fontSize: 18, lineHeight: 1 }}>×</button>
+          <button className="ghost-btn" onClick={() => { flushText(); onClose() }} style={{ padding: '4px 9px', fontSize: 18, lineHeight: 1 }}>x</button>
         </div>
 
-        {/* Date + Slot */}
-        <EditorSection label="Data e período">
+        <EditorSection label="Data e periodo">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <EditorField label="Data">
               <input
                 type="date"
                 value={dateValue}
-                onChange={e => {
+                onChange={(e) => {
                   const val = e.target.value
-                  if (val) {
-                    // Move to new date bucket and update the local bucketKey in draft
-                    update({ bucketKey: val })
-                    onMoveTask(draft.id, val)
-                  }
+                  if (!val) return
+                  setDraft((current) => ({ ...current, bucketKey: val }))
+                  onMoveTask(draft.id, val)
                 }}
                 style={{
                   border: '1px solid var(--line-strong)',
@@ -169,12 +201,12 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
                 }}
               />
             </EditorField>
-            <EditorField label="Período">
+            <EditorField label="Periodo">
               <div style={{ display: 'flex', gap: 4 }}>
-                {([['am', 'Manhã'], ['pm', 'Tarde']] as [string, string][]).map(([v, label]) => {
+                {([['am', 'Manha'], ['pm', 'Tarde']] as [string, string][]).map(([v, label]) => {
                   const active = draft.slot === v
                   return (
-                    <button key={v} onClick={() => update({ slot: v as 'am' | 'pm' })} style={{
+                    <button key={v} onClick={() => updateImmediate({ slot: v as 'am' | 'pm' })} style={{
                       padding: '5px 12px', borderRadius: 9999,
                       border: 'none', fontSize: 12, fontWeight: 600,
                       background: active ? (accent || 'var(--accent)') : 'var(--bg-sunken)',
@@ -188,13 +220,12 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           </div>
         </EditorSection>
 
-        {/* Priority + Recurring */}
         <EditorSection label="Propriedades">
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <EditorField label="Prioridade">
               <div style={{ display: 'flex', gap: 4 }}>
                 {([
-                  [null, '—'],
+                  [null, '-'],
                   ['high', 'P1'],
                   ['med', 'P2'],
                   ['low', 'P3'],
@@ -202,7 +233,7 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
                   const color = v === 'high' ? 'var(--prio-high)' : v === 'med' ? 'var(--prio-med)' : v === 'low' ? 'var(--prio-low)' : 'var(--ink-mute)'
                   const active = draft.priority === v
                   return (
-                    <button key={String(v)} onClick={() => update({ priority: v as Task['priority'] })} style={{
+                    <button key={String(v)} onClick={() => updateImmediate({ priority: v as Task['priority'] })} style={{
                       padding: '5px 10px', borderRadius: 9999,
                       border: 'none', fontSize: 11, fontWeight: 700,
                       background: active ? color : 'var(--bg-sunken)',
@@ -213,17 +244,17 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
                 })}
               </div>
             </EditorField>
-            <EditorField label="Recorrência">
+            <EditorField label="Recorrencia">
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {([
                   [null, 'Nenhuma'],
-                  ['daily', 'Diária'],
+                  ['daily', 'Diaria'],
                   ['weekly', 'Semanal'],
                   ['monthly', 'Mensal'],
                 ] as [string | null, string][]).map(([v, label]) => {
                   const active = draft.recurring === v
                   return (
-                    <button key={String(v)} onClick={() => update({ recurring: v as Task['recurring'] })} style={{
+                    <button key={String(v)} onClick={() => updateImmediate({ recurring: v as Task['recurring'] })} style={{
                       padding: '5px 10px', borderRadius: 9999,
                       border: 'none', fontSize: 11, fontWeight: 600,
                       background: active ? 'var(--ink)' : 'var(--bg-sunken)',
@@ -237,7 +268,6 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           </div>
         </EditorSection>
 
-        {/* Tags */}
         <EditorSection label="Tags">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {Object.entries(TAGS).map(([key, tag]) => {
@@ -259,16 +289,15 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           </div>
         </EditorSection>
 
-        {/* Subtasks */}
-        <EditorSection label={`Subtarefas${draft.subtasks.length > 0 ? ` · ${draft.subtasks.filter(s => s.done).length}/${draft.subtasks.length}` : ''}`}>
+        <EditorSection label={`Subtarefas${draft.subtasks.length > 0 ? ` · ${draft.subtasks.filter((s) => s.done).length}/${draft.subtasks.length}` : ''}`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {draft.subtasks.map(s => (
+            {draft.subtasks.map((s) => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Checkbox checked={s.done} onChange={v => updateSub(s.id, { done: v })} accent={accent} />
+                <Checkbox checked={s.done} onChange={(v) => updateSub(s.id, { done: v })} accent={accent} />
                 <input
                   value={s.title}
-                  onChange={e => updateSub(s.id, { title: e.target.value })}
-                  placeholder="Subtarefa…"
+                  onChange={(e) => updateSub(s.id, { title: e.target.value })}
+                  placeholder="Subtarefa..."
                   style={{
                     flex: 1, border: 'none', outline: 'none', background: 'transparent',
                     fontSize: 14, color: 'var(--ink)',
@@ -291,12 +320,12 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           </div>
         </EditorSection>
 
-        {/* Notes */}
         <EditorSection label="Notas">
           <textarea
             value={draft.note || ''}
-            onChange={e => update({ note: e.target.value })}
-            placeholder="Contexto, links, detalhes…"
+            onChange={(e) => updateText({ note: e.target.value })}
+            onBlur={flushText}
+            placeholder="Contexto, links, detalhes..."
             rows={3}
             style={{
               width: '100%', resize: 'vertical',
@@ -309,7 +338,6 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           />
         </EditorSection>
 
-        {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           paddingTop: 12, borderTop: '1px solid var(--line)',
@@ -321,7 +349,7 @@ export function TaskEditor({ task, accent, onChange, onDelete, onClose, onMoveTa
           >
             <IconTrash /> Excluir
           </button>
-          <button onClick={onClose} className="pill-btn" style={{ fontSize: 13, background: accent || 'var(--accent)' }}>
+          <button onClick={() => { flushText(); onClose() }} className="pill-btn" style={{ fontSize: 13, background: accent || 'var(--accent)' }}>
             Pronto
           </button>
         </div>

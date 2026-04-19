@@ -76,9 +76,15 @@ export function WeekView({
   onPrevWeek, onNextWeek, onToday,
   onChangeVariant, onToggleWeekend, onToggleDark,
 }: WeekViewProps) {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  const visibleDays = showWeekend ? days : days.filter(d => d.getDay() !== 0 && d.getDay() !== 6)
-  const weekend = days.filter(d => d.getDay() === 0 || d.getDay() === 6)
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
+  const visibleDays = useMemo(
+    () => showWeekend ? days : days.filter((d) => d.getDay() !== 0 && d.getDay() !== 6),
+    [days, showWeekend],
+  )
+  const weekend = useMemo(
+    () => days.filter((d) => d.getDay() === 0 || d.getDay() === 6),
+    [days],
+  )
 
   const end = addDays(weekStart, 6)
   const sameMonth = weekStart.getMonth() === end.getMonth()
@@ -107,7 +113,7 @@ export function WeekView({
   const sidePad   = isColumns ? '0 24px 24px' : '0 32px 120px'
 
   const weeklistKey = `weeklist-${isoDate(weekStart)}`
-  const weeklistTasks = tasks[weeklistKey] ?? []
+  const weeklistTasks = useMemo(() => tasks[weeklistKey] ?? [], [tasks, weeklistKey])
 
   const dayProps = {
     accent,
@@ -286,7 +292,7 @@ export function ListView({
   title, subtitle, bucket, tasks, accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: ListViewProps) {
-  const list = tasks[bucket] ?? []
+  const list = useMemo(() => tasks[bucket] ?? [], [tasks, bucket])
   return (
     <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '36px 48px 120px', maxWidth: 720 }}>
       <div style={{ marginBottom: 28 }}>
