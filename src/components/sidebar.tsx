@@ -131,30 +131,34 @@ interface ViewButtonProps {
   onClick: () => void
   accent?: string
   collapsed: boolean
+  dropRef?: (el: HTMLElement | null) => void
+  isDropOver?: boolean
 }
 
-function ViewButton({ icon, label, count, active, onClick, accent, collapsed }: ViewButtonProps) {
+function ViewButton({ icon, label, count, active, onClick, accent, collapsed, dropRef, isDropOver }: ViewButtonProps) {
+  const isHighlighted = isDropOver || false
   return (
     <button
+      ref={dropRef}
       onClick={onClick}
       title={collapsed ? label : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
         padding: collapsed ? '10px 0' : '9px 12px', borderRadius: 10,
-        border: 'none',
-        background: active ? 'var(--bg-raised)' : 'transparent',
-        boxShadow: active ? 'var(--ring)' : 'none',
+        border: isHighlighted ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
+        background: isHighlighted ? 'var(--accent-soft)' : (active ? 'var(--bg-raised)' : 'transparent'),
+        boxShadow: active && !isHighlighted ? 'var(--ring)' : 'none',
         color: 'var(--ink)',
         fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em',
         width: '100%', textAlign: collapsed ? 'center' : 'left',
         justifyContent: collapsed ? 'center' : 'flex-start',
         cursor: 'pointer',
-        transition: 'background 120ms ease',
+        transition: 'background 120ms ease, border 120ms ease',
       }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--line)' }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+      onMouseEnter={e => { if (!active && !isHighlighted) e.currentTarget.style.background = 'var(--line)' }}
+      onMouseLeave={e => { if (!active && !isHighlighted) e.currentTarget.style.background = 'transparent' }}
     >
-      <span style={{ color: active ? (accent || 'var(--ink)') : 'var(--ink-mute)' }}>{icon}</span>
+      <span style={{ color: isHighlighted ? 'var(--accent)' : (active ? (accent || 'var(--ink)') : 'var(--ink-mute)') }}>{icon}</span>
       {!collapsed && <span style={{ flex: 1 }}>{label}</span>}
       {!collapsed && count != null && count > 0 && (
         <span style={{
@@ -164,6 +168,39 @@ function ViewButton({ icon, label, count, active, onClick, accent, collapsed }: 
         }}>{count}</span>
       )}
     </button>
+  )
+}
+
+// ---- DroppableInboxButton ----
+
+interface DroppableInboxButtonProps {
+  active: boolean
+  onClick: () => void
+  accent?: string
+  collapsed: boolean
+  count?: number
+  view: View
+}
+
+function DroppableInboxButton({ active, onClick, accent, collapsed, count, view }: DroppableInboxButtonProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: '__inbox',
+    // Desabilita quando já está no inbox para não conflitar com o droppable do ListView
+    disabled: view === 'inbox',
+    data: { type: 'zone', bucketKey: '__inbox', slot: null },
+  })
+  return (
+    <ViewButton
+      dropRef={setNodeRef}
+      isDropOver={isOver}
+      icon={<IconInbox />}
+      label="Inbox"
+      count={count}
+      active={active}
+      onClick={onClick}
+      accent={accent}
+      collapsed={collapsed}
+    />
   )
 }
 
@@ -262,9 +299,13 @@ export function Sidebar({
           collapsed={collapsed} icon={<IconWeek />} label="Semana"
           active={view === 'week'} onClick={() => onViewChange('week')} accent={accent}
         />
-        <ViewButton
-          collapsed={collapsed} icon={<IconInbox />} label="Inbox" count={inboxCount}
-          active={view === 'inbox'} onClick={() => onViewChange('inbox')} accent={accent}
+        <DroppableInboxButton
+          collapsed={collapsed}
+          count={inboxCount}
+          active={view === 'inbox'}
+          onClick={() => onViewChange('inbox')}
+          accent={accent}
+          view={view}
         />
       </div>
 

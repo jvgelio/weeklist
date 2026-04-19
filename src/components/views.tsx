@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react'
-import { MONTH_PT, isoDate, sameDay, addDays } from '../lib/constants'
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { MONTH_PT, DAY_NAMES_PT, isoDate, sameDay, addDays } from '../lib/constants'
 import type { Task, TaskMap, Variant } from '../lib/types'
 import {
   DayRow, DayColumn,
@@ -274,6 +276,70 @@ export function WeekView({
   )
 }
 
+// ---- WeekDayDropStrip (faixa de dias para inbox → semana) ----
+
+interface WeekDayDropStripProps {
+  weekStart: Date
+}
+
+function WeekDayDropStripDay({ date }: { date: Date }) {
+  const key = isoDate(date)
+  const { setNodeRef, isOver } = useDroppable({
+    id: key,
+    data: { type: 'zone', bucketKey: key, slot: 'am' },
+  })
+  const isToday = sameDay(date, new Date())
+  const dayIdx = date.getDay()
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        padding: '10px 8px',
+        borderRadius: 10,
+        background: isOver ? 'var(--accent-soft)' : 'var(--bg-sunken)',
+        border: isOver ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
+        transition: 'all 120ms ease',
+        cursor: 'copy',
+        minHeight: 60,
+      }}
+    >
+      <span style={{
+        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: isToday ? 'var(--accent)' : (isOver ? 'var(--accent)' : 'var(--ink-mute)'),
+        marginBottom: 2,
+      }}>
+        {DAY_NAMES_PT[dayIdx]}
+      </span>
+      <span style={{
+        fontSize: 13, fontWeight: 600,
+        color: isToday ? 'var(--accent)' : 'var(--ink)',
+      }}>
+        {date.getDate()}
+      </span>
+    </div>
+  )
+}
+
+function WeekDayDropStrip({ weekStart }: WeekDayDropStripProps) {
+  const days = useMemo(
+    () => Array.from({ length: 5 }, (_, i) => addDays(weekStart, i)),
+    [weekStart],
+  )
+  return (
+    <div style={{
+      display: 'flex', gap: 6,
+      padding: '12px 0 16px',
+      borderBottom: '1px solid var(--line)',
+      marginBottom: 16,
+    }}>
+      {days.map(d => <WeekDayDropStripDay key={isoDate(d)} date={d} />)}
+    </div>
+  )
+}
+
 // ---- ListView (Inbox / Someday) ----
 
 interface ListViewProps {
@@ -282,6 +348,8 @@ interface ListViewProps {
   bucket: string
   tasks: TaskMap
   accent: string
+  draggingTask?: Task | null
+  weekStart?: Date
   onOpenTask: (task: Task) => void
   onAddTask: (bucketKey: string, title: string) => void
   onUpdateTask: (task: Task) => void
@@ -290,9 +358,15 @@ interface ListViewProps {
 
 export function ListView({
   title, subtitle, bucket, tasks, accent,
+  draggingTask, weekStart,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: ListViewProps) {
   const list = useMemo(() => tasks[bucket] ?? [], [tasks, bucket])
+  const { setNodeRef, isOver } = useDroppable({
+    id: bucket,
+    data: { type: 'zone', bucketKey: bucket, slot: null },
+  })
+
   return (
     <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '36px 48px 120px', maxWidth: 720 }}>
       <div style={{ marginBottom: 28 }}>
@@ -306,13 +380,32 @@ export function ListView({
           letterSpacing: '-0.02em', lineHeight: 1.0, color: 'var(--ink)',
         }}>{title}</h1>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {list.map(t => (
-          <TaskRow key={t.id} task={t} accent={accent}
-            onOpen={onOpenTask}
-            onChange={onUpdateTask} onDelete={onDeleteTask}/>
-        ))}
-        <InlineAdd onAdd={title => onAddTask(bucket, title)} autofocus={list.length === 0}/>
+
+      {/* Faixa de dias para arrastar inbox → semana */}
+      {draggingTask && weekStart && (
+        <WeekDayDropStrip weekStart={weekStart} />
+      )}
+
+      <div
+        ref={setNodeRef}
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 2,
+          minHeight: 80,
+          background: isOver ? 'var(--accent-soft)' : 'transparent',
+          borderRadius: 12,
+          transition: 'background 120ms ease',
+          padding: isOver ? '4px' : 0,
+        }}
+      >
+        <SortableContext items={list.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {list.map(t => (
+            <TaskRow key={t.id} task={t} accent={accent}
+              showDragHandle
+              onOpen={onOpenTask}
+              onChange={onUpdateTask} onDelete={onDeleteTask}/>
+          ))}
+        </SortableContext>
+        <InlineAdd onAdd={t => onAddTask(bucket, t)} />
       </div>
     </div>
   )

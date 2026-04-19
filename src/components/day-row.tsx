@@ -29,8 +29,8 @@ function DayRowComponent({
   const key = isoDate(date)
   
   // Separate droppables for AM and PM
-  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am` })
-  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm` })
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
 
   const dayIdx  = date.getDay()
   const dayName = DAY_NAMES_LONG_PT[dayIdx]
@@ -92,7 +92,7 @@ function DayRowComponent({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
@@ -100,10 +100,10 @@ function DayRowComponent({
             </div>
           </SortableContext>
         </div>
-        
+
         <LunchDivider/>
-        
-        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+
+        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
@@ -141,8 +141,8 @@ function DayColumnComponent({
   const key = isoDate(date)
   
   // Separate droppables for AM and PM
-  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am` })
-  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm` })
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
 
   const dayIdx   = date.getDay()
   const dayShort = DAY_NAMES_PT[dayIdx]
@@ -219,7 +219,7 @@ function DayColumnComponent({
         display: 'flex', flexDirection: 'column',
         overflowY: 'auto', minHeight: 100, gap: 4,
       }}>
-        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0' }}>
+        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0', minHeight: 60 }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
@@ -227,8 +227,8 @@ function DayColumnComponent({
         </div>
 
         <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
-        
-        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0' }}>
+
+        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', padding: '4px 0', minHeight: 60 }}>
           <div style={{
             fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
             textTransform: 'uppercase', color: 'var(--ink-faint)',
@@ -376,8 +376,8 @@ function WeekendDayCell({
   const key = isoDate(date)
   
   // Separate droppables for AM and PM
-  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am` })
-  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm` })
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
 
   const taskProps = {
     accent,
@@ -405,7 +405,7 @@ function WeekendDayCell({
         </span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+        <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
@@ -413,10 +413,10 @@ function WeekendDayCell({
             </div>
           </SortableContext>
         </div>
-        
+
         <LunchDivider/>
-        
-        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms' }}>
+
+        <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
@@ -442,7 +442,7 @@ interface WeeklistProps {
 }
 
 export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: bucketKey })
+  const { setNodeRef, isOver } = useDroppable({ id: bucketKey, data: { type: 'zone', bucketKey, slot: null } })
   const [expanded, setExpanded] = useState(false)
   const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: true }
 
@@ -483,7 +483,7 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
 }
 
 export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
-  const { setNodeRef, isOver } = useDroppable({ id: bucketKey })
+  const { setNodeRef, isOver } = useDroppable({ id: bucketKey, data: { type: 'zone', bucketKey, slot: null } })
   const [expanded, setExpanded] = useState(true)
   const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: true }
 

@@ -266,7 +266,10 @@ function TaskRowComponent({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id })
+  } = useSortable({
+    id: task.id,
+    data: { type: 'task', bucketKey: task.bucketKey, slot: task.slot ?? null },
+  })
 
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.focus()

@@ -306,27 +306,18 @@ export default function App() {
 
     const taskId = active.id as string
     const overId = over.id as string
+    const overData = over.data?.current as
+      | { type?: string; bucketKey?: string; slot?: string | null }
+      | undefined
 
     const task = allTasks.find((entry) => entry.id === taskId)
     if (!task) return
 
-    const isDateBucket = /^\d{4}-\d{2}-\d{2}/.test(overId)
-    const isWeeklistBucket = overId.startsWith('weeklist-')
-    const isSpecialBucket = overId.startsWith('__')
-    const isBucketKey = isDateBucket || isWeeklistBucket || isSpecialBucket
-
-    if (isBucketKey) {
-      let targetBucket = overId
-      let targetSlot: 'am' | 'pm' | null = null
-
-      if (overId.includes(':')) {
-        const [bucket, slot] = overId.split(':')
-        targetBucket = bucket
-        targetSlot = slot as 'am' | 'pm'
-      }
-
+    // Caso 1: drop em zona explícita com data (AM/PM/weeklist/inbox via sidebar)
+    if (overData?.type === 'zone') {
+      const targetBucket = overData.bucketKey!
+      const targetSlot = (overData.slot as 'am' | 'pm' | null | undefined) ?? null
       const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
-      
       moveTask.mutate({
         id: taskId,
         bucketKey: targetBucket,
@@ -337,19 +328,44 @@ export default function App() {
       return
     }
 
+    // Caso 2: drop em bucket pelo ID (compatibilidade com sidebar MiniWeekStrip / outros)
+    const isDateBucket = /^\d{4}-\d{2}-\d{2}/.test(overId)
+    const isWeeklistBucket = overId.startsWith('weeklist-')
+    const isSpecialBucket = overId.startsWith('__')
+    if (isDateBucket || isWeeklistBucket || isSpecialBucket) {
+      let targetBucket = overId
+      let targetSlot: 'am' | 'pm' | null = null
+      if (overId.includes(':')) {
+        const [bucket, slot] = overId.split(':')
+        targetBucket = bucket
+        targetSlot = slot as 'am' | 'pm'
+      }
+      const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
+      moveTask.mutate({
+        id: taskId,
+        bucketKey: targetBucket,
+        slot: targetSlot,
+        position: targetList.length,
+        clientTrace: makeClientTrace('move'),
+      })
+      return
+    }
+
+    // Caso 3: drop task-to-task (reorder ou cross-slot)
     const overTask = allTasks.find((entry) => entry.id === overId)
     if (!overTask) return
 
     const targetBucket = overTask.bucketKey
+    // Usa o slot do data da tarefa de destino (mais confiável que inferir)
+    const targetSlot = ((overData as { slot?: string | null } | undefined)?.slot ?? overTask.slot) as 'am' | 'pm' | null
     const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
     const overIndex = targetList.findIndex((entry) => entry.id === overId)
-    const newPosition = overIndex >= 0 ? overIndex : targetList.length
 
     moveTask.mutate({
       id: taskId,
       bucketKey: targetBucket,
-      slot: overTask.slot,
-      position: newPosition,
+      slot: targetSlot,
+      position: overIndex >= 0 ? overIndex : targetList.length,
       clientTrace: makeClientTrace('move'),
     })
   }, [allTasks, inboxTasks, moveTask, weekTasks])
@@ -401,6 +417,8 @@ export default function App() {
               bucket="__inbox"
               tasks={inboxMap}
               onAddTask={handleAddBucketTask}
+              draggingTask={draggingTask}
+              weekStart={weekStart}
               {...sharedDayProps}
             />
           )}
