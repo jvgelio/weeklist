@@ -1,11 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './lib/query-client'
+import App from './components/app'
 import '../styles/tokens.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <div style={{ padding: '2rem', fontFamily: 'Inter, sans-serif' }}>
-      Weeklist — migrating to production...
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <App/>
+    </QueryClientProvider>
   </React.StrictMode>
 )

@@ -1,64 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { TAGS } from '../lib/constants'
 import type { Task, Subtask } from '../lib/types'
-
-// ---- Inline icons needed by this editor ----
-
-interface IconProps { size?: number }
-
-function IconCheck({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
-}
-
-function IconPlus({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  )
-}
-
-function IconTrash({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9a1.5 1.5 0 001.5 1.4h2a1.5 1.5 0 001.5-1.4L11 4"
-        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
-}
-
-// ---- Small helper sub-components ----
-
-interface CheckboxProps {
-  checked: boolean
-  onChange: (v: boolean) => void
-  accent?: string
-}
-
-function Checkbox({ checked, onChange, accent }: CheckboxProps) {
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onChange(!checked) }}
-      aria-pressed={checked}
-      style={{
-        width: 18, height: 18, flexShrink: 0,
-        borderRadius: 5,
-        border: '1.5px solid var(--line-strong)',
-        background: checked ? (accent || 'var(--accent)') : 'transparent',
-        color: checked ? '#fff' : 'transparent',
-        display: 'grid', placeItems: 'center',
-        padding: 0,
-        transition: 'all 120ms ease',
-      }}
-    >
-      <IconCheck size={11} />
-    </button>
-  )
-}
+import { IconPlus, IconTrash, Checkbox } from './task-components'
 
 interface EditorSectionProps {
   label: string
