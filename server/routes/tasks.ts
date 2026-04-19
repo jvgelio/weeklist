@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { sql, eq, and, or, gte, lte, gt, lt, inArray } from 'drizzle-orm'
+import { sql, eq, and, gte, lte, gt, lt, inArray } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '../db/client.js'
 import { tasks, subtasks } from '../db/schema.js'
@@ -19,12 +19,24 @@ async function getTaskWithSubtasks(id: string) {
 // Helper: fetch multiple tasks with subtasks (2 queries, not N+1)
 async function getTasksWithSubtasks(taskList: typeof tasks.$inferSelect[]) {
   if (taskList.length === 0) return []
+
   const subs = await db.select().from(subtasks)
-    .where(inArray(subtasks.taskId, taskList.map(t => t.id)))
-    .orderBy(subtasks.position)
-  return taskList.map(task => ({
+    .where(inArray(subtasks.taskId, taskList.map((task) => task.id)))
+    .orderBy(subtasks.taskId, subtasks.position)
+
+  const groupedSubtasks = new Map<string, typeof subs>()
+  for (const sub of subs) {
+    const current = groupedSubtasks.get(sub.taskId)
+    if (current) {
+      current.push(sub)
+    } else {
+      groupedSubtasks.set(sub.taskId, [sub])
+    }
+  }
+
+  return taskList.map((task) => ({
     ...task,
-    subtasks: subs.filter(s => s.taskId === task.id),
+    subtasks: groupedSubtasks.get(task.id) ?? [],
   }))
 }
 
@@ -33,6 +45,7 @@ tasksRouter.get('/', async (c) => {
   const from = c.req.query('from')
   const to = c.req.query('to')
   const bucket = c.req.query('bucket')
+  const includeSubtasks = c.req.query('includeSubtasks') === 'true'
 
   let taskList: typeof tasks.$inferSelect[]
 
@@ -45,12 +58,19 @@ tasksRouter.get('/', async (c) => {
   }
 
   if (from && to) {
-    taskList = await db.select().from(tasks)
-      .where(or(
-        and(gte(tasks.bucketKey, from), lte(tasks.bucketKey, to)),
-        eq(tasks.bucketKey, `weeklist-${from}`)
-      ))
-      .orderBy(tasks.position)
+    const [datedTasks, weeklistTasks] = await Promise.all([
+      db.select().from(tasks)
+        .where(and(
+          gte(tasks.bucketKey, from),
+          lte(tasks.bucketKey, to),
+        ))
+        .orderBy(tasks.bucketKey, tasks.position),
+      db.select().from(tasks)
+        .where(eq(tasks.bucketKey, `weeklist-${from}`))
+        .orderBy(tasks.position),
+    ])
+
+    taskList = [...datedTasks, ...weeklistTasks]
   } else if (bucket) {
     taskList = await db.select().from(tasks)
       .where(eq(tasks.bucketKey, bucket))
@@ -59,8 +79,22 @@ tasksRouter.get('/', async (c) => {
     return c.json({ error: 'Provide either ?from=&to= or ?bucket=' }, 400)
   }
 
+  if (!includeSubtasks) {
+    return c.json(taskList)
+  }
+
   const result = await getTasksWithSubtasks(taskList)
   return c.json(result)
+})
+
+// GET /api/tasks/:id
+tasksRouter.get('/:id', async (c) => {
+  const id = c.req.param('id')
+  const task = await getTaskWithSubtasks(id)
+  if (!task) {
+    return c.json({ error: 'Task not found' }, 404)
+  }
+  return c.json(task)
 })
 
 // POST /api/tasks

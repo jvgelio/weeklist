@@ -5,6 +5,13 @@ import { tasksRouter } from './routes/tasks.js'
 
 const app = new Hono()
 
+app.use('/api/*', async (c, next) => {
+  const startedAt = performance.now()
+  await next()
+  const durationMs = performance.now() - startedAt
+  c.header('Server-Timing', `app;dur=${durationMs.toFixed(1)}`)
+})
+
 // API routes
 app.route('/api/tasks', tasksRouter)
 

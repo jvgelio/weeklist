@@ -8,6 +8,13 @@
       "when": 1776555061963,
       "tag": "0000_charming_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776594000000,
+      "tag": "0001_fluidez_total_indexes",
+      "breakpoints": true
     }
   ]
 }
