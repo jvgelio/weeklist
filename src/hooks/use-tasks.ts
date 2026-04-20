@@ -106,8 +106,8 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: ({ clientTrace: _clientTrace, ...data }: CreateTaskInput) => api.createTask(data),
     onMutate: async (newTaskParams) => {
-      await qc.cancelQueries({ queryKey: taskKeys.all() })
       const snapshot = qc.getQueriesData({ queryKey: taskKeys.all() })
+      const cancelPromise = qc.cancelQueries({ queryKey: taskKeys.all() })
 
       const tempId = `temp-${Date.now()}`
       const nowIso = new Date().toISOString()
@@ -130,6 +130,7 @@ export function useCreateTask() {
       addTaskToCaches(qc, tempTask)
       logClientLatency(newTaskParams.clientTrace, 'optimistic')
 
+      await cancelPromise
       return { snapshot, tempId, clientTrace: newTaskParams.clientTrace }
     },
     onSuccess: (createdTask, _vars, ctx) => {
@@ -150,8 +151,8 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, data }: UpdateTaskInput) => api.updateTask(id, data),
     onMutate: async ({ id, data, clientTrace }) => {
-      await qc.cancelQueries({ queryKey: taskKeys.all() })
       const snapshot = qc.getQueriesData({ queryKey: taskKeys.all() })
+      const cancelPromise = qc.cancelQueries({ queryKey: taskKeys.all() })
       const token = beginTaskMutation(id)
 
       const optimisticUpdatedAt = new Date().toISOString()
@@ -162,6 +163,7 @@ export function useUpdateTask() {
       }))
 
       logClientLatency(clientTrace, 'optimistic')
+      await cancelPromise
       return { snapshot, id, token, clientTrace }
     },
     onSuccess: (serverTask, _vars, ctx) => {
@@ -187,10 +189,11 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: (id: string) => api.deleteTask(id),
     onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: taskKeys.all() })
       const snapshot = qc.getQueriesData({ queryKey: taskKeys.all() })
+      const cancelPromise = qc.cancelQueries({ queryKey: taskKeys.all() })
       const token = beginTaskMutation(id)
       removeTaskFromCaches(qc, id)
+      await cancelPromise
       return { snapshot, id, token }
     },
     onSuccess: (_result, _id, ctx) => {
@@ -214,8 +217,8 @@ export function useMoveTask() {
     mutationFn: ({ id, bucketKey, position, slot }: MoveTaskInput) =>
       api.moveTask(id, { bucketKey, position, slot }),
     onMutate: async ({ id, bucketKey, position, slot, clientTrace }) => {
-      await qc.cancelQueries({ queryKey: taskKeys.all() })
       const snapshot = qc.getQueriesData({ queryKey: taskKeys.all() })
+      const cancelPromise = qc.cancelQueries({ queryKey: taskKeys.all() })
       const token = beginTaskMutation(id)
 
       const task = findTaskInCaches(qc, id)
@@ -224,6 +227,7 @@ export function useMoveTask() {
       }
 
       logClientLatency(clientTrace, 'optimistic')
+      await cancelPromise
       return { snapshot, id, token, clientTrace }
     },
     onSuccess: (serverTask, _vars, ctx) => {
