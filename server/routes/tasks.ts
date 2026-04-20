@@ -104,6 +104,8 @@ tasksRouter.post('/', async (c) => {
     bucketKey: string
     slot?: string
     position: number
+    priority?: string | null
+    tags?: string[]
   }>()
 
   if (!body.title || !body.bucketKey || body.position === undefined) {
@@ -119,6 +121,8 @@ tasksRouter.post('/', async (c) => {
     bucketKey: body.bucketKey,
     slot: body.slot ?? null,
     position: body.position,
+    priority: body.priority ?? null,
+    tags: body.tags ?? [],
     createdAt: now,
     updatedAt: now,
   })
