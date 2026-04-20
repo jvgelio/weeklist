@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import React, { useMemo, useState } from 'react'
+import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { MONTH_PT, DAY_NAMES_PT, isoDate, sameDay, addDays } from '../lib/constants'
 import type { Task, TaskMap, Variant } from '../lib/types'
@@ -51,6 +51,172 @@ export function ViewModeToggle({ variant, onChange }: ViewModeToggleProps) {
 
 // ---- WeekView ----
 
+function formatOverdueDate(bucketKey: string): string {
+  const d = new Date(bucketKey + 'T00:00:00')
+  return `${DAY_NAMES_PT[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`
+}
+
+interface OverdueDraggableTaskProps {
+  task: Task
+  onPullOne: (id: string) => void
+}
+
+function OverdueDraggableTask({ task, onPullOne }: OverdueDraggableTaskProps) {
+  const { listeners, attributes, setNodeRef, transform, isDragging } = useDraggable({
+    id: `overdue:${task.id}`,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '7px 14px', fontSize: 13,
+        borderBottom: '1px solid rgba(20,20,17,0.06)',
+        background: isDragging ? 'rgba(20,20,17,0.04)' : undefined,
+        opacity: isDragging ? 0.45 : 1,
+        cursor: 'default',
+        transform: transform
+          ? `translate3d(${transform.x}px,${transform.y}px,0)`
+          : undefined,
+      }}
+    >
+      <span
+        {...listeners}
+        {...attributes}
+        style={{
+          color: 'var(--ink-faint)', fontSize: 11,
+          cursor: 'grab', userSelect: 'none', flexShrink: 0,
+        }}
+      >
+        ⋮⋮
+      </span>
+      <div style={{
+        width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+        border: '1.5px solid rgba(20,20,17,0.2)',
+      }} />
+      <span style={{ flex: 1, color: 'var(--ink)' }}>{task.title}</span>
+      <span style={{
+        fontSize: 10, color: 'var(--prio-high)',
+        background: 'rgba(214,59,42,0.08)',
+        borderRadius: 4, padding: '1px 5px',
+        flexShrink: 0,
+      }}>
+        {formatOverdueDate(task.bucketKey)}
+      </span>
+      <button
+        onClick={() => onPullOne(task.id)}
+        style={{
+          fontSize: 10, fontWeight: 600, padding: '3px 8px',
+          borderRadius: 6, background: 'rgba(20,20,17,0.08)',
+          color: 'var(--ink-soft)', border: 'none', cursor: 'pointer',
+          marginLeft: 4, flexShrink: 0, fontFamily: 'var(--font-body)',
+        }}
+      >
+        ↑ hoje
+      </button>
+    </div>
+  )
+}
+
+interface OverdueBannerProps {
+  tasks: Task[]
+  onPullOne: (id: string) => void
+  onPullAll: () => void
+}
+
+function OverdueBanner({ tasks, onPullOne, onPullAll }: OverdueBannerProps) {
+  const [expanded, setExpanded] = useState(false)
+
+  if (tasks.length === 0) return null
+
+  const preview = tasks.slice(0, 2).map(t => t.title).join(' · ') +
+    (tasks.length > 2 ? ' · …' : '')
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {!expanded ? (
+        // Estado colapsado
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, padding: '10px 14px',
+          background: 'var(--bg-raised)', boxShadow: 'var(--ring)',
+          borderRadius: 10, borderLeft: '3px solid var(--prio-high)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: 'var(--prio-high)',
+              flexShrink: 0,
+            }}>
+              atrasadas
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 500, flexShrink: 0 }}>
+              {tasks.length} tarefa{tasks.length > 1 ? 's' : ''}
+            </span>
+            <span style={{
+              fontSize: 12, color: 'var(--ink-mute)', fontStyle: 'italic',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {preview}
+            </span>
+          </div>
+          <button
+            className="ghost-btn"
+            onClick={() => setExpanded(true)}
+            style={{ fontSize: 11, flexShrink: 0 }}
+          >
+            ▾ ver
+          </button>
+          <button className="pill-btn" onClick={onPullAll} style={{ fontSize: 11, padding: '6px 13px', flexShrink: 0 }}>
+            ↑ Puxar todas
+          </button>
+        </div>
+      ) : (
+        // Estado expandido
+        <div style={{
+          background: 'var(--bg-raised)', boxShadow: 'var(--ring)',
+          borderRadius: 10, borderLeft: '3px solid var(--prio-high)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 14px',
+            borderBottom: '1px solid rgba(20,20,17,0.08)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: 'var(--prio-high)',
+              }}>
+                atrasadas
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>
+                {tasks.length} tarefa{tasks.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                className="ghost-btn"
+                onClick={() => setExpanded(false)}
+                style={{ fontSize: 11 }}
+              >
+                ▴ fechar
+              </button>
+              <button className="pill-btn" onClick={onPullAll} style={{ fontSize: 11, padding: '6px 13px' }}>
+                ↑ Puxar todas
+              </button>
+            </div>
+          </div>
+          {tasks.map(task => (
+            <OverdueDraggableTask key={task.id} task={task} onPullOne={onPullOne} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface WeekViewProps {
   weekStart: Date
   tasks: TaskMap
@@ -69,6 +235,9 @@ interface WeekViewProps {
   onChangeVariant: (v: Variant) => void
   onToggleWeekend: () => void
   onToggleDark: () => void
+  overdueTasks: Task[]
+  onPullOneOverdue: (id: string) => void
+  onPullAllOverdue: () => void
 }
 
 export function WeekView({
@@ -77,6 +246,7 @@ export function WeekView({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, onMoveTask,
   onPrevWeek, onNextWeek, onToday,
   onChangeVariant, onToggleWeekend, onToggleDark,
+  overdueTasks, onPullOneOverdue, onPullAllOverdue,
 }: WeekViewProps) {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
   const visibleDays = useMemo(
@@ -93,23 +263,6 @@ export function WeekView({
   const rangeLabel = sameMonth
     ? `${weekStart.getDate()}–${end.getDate()} ${MONTH_PT[weekStart.getMonth()]} ${end.getFullYear()}`
     : `${weekStart.getDate()} ${MONTH_PT[weekStart.getMonth()]} – ${end.getDate()} ${MONTH_PT[end.getMonth()]} ${end.getFullYear()}`
-
-  const overdueTasks = useMemo(() => {
-    const out: (Task & { _from: string })[] = []
-    Object.entries(tasks).forEach(([k, list]) => {
-      if (k.startsWith('__')) return
-      const d = new Date(k + 'T00:00:00')
-      if (d < weekStart) {
-        list.forEach(t => { if (!t.done) out.push({ ...t, _from: k }) })
-      }
-    })
-    return out
-  }, [tasks, weekStart])
-
-  function pullAllOverdue() {
-    const todayKey = isoDate(TODAY)
-    overdueTasks.forEach(t => onMoveTask(t.id, todayKey))
-  }
 
   const isColumns = variant === 'columns'
   const sidePad   = isColumns ? '0 24px 24px' : '0 32px 120px'
@@ -134,7 +287,7 @@ export function WeekView({
       }}>
         <header style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 20, marginBottom: overdueTasks.length > 0 ? 14 : 0,
+          gap: 20, marginBottom: 0,
           flexWrap: 'wrap',
         }}>
           <div>
@@ -185,35 +338,11 @@ export function WeekView({
           </div>
         </header>
 
-        {overdueTasks.length > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            gap: 16, padding: '10px 14px',
-            background: 'var(--bg-raised)', boxShadow: 'var(--ring)',
-            borderRadius: 12,
-            borderLeft: '3px solid var(--prio-high)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-              <span style={{
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: 'var(--prio-high)',
-              }}>atrasadas</span>
-              <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>
-                {overdueTasks.length} tarefa{overdueTasks.length > 1 ? 's' : ''}
-              </span>
-              <span style={{
-                fontSize: 12, color: 'var(--ink-mute)', fontStyle: 'italic',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {overdueTasks.slice(0, 2).map(t => t.title).join(' · ')}
-                {overdueTasks.length > 2 && ' · …'}
-              </span>
-            </div>
-            <button className="pill-btn" onClick={pullAllOverdue} style={{ fontSize: 12, padding: '7px 14px' }}>
-              <IconArrow size={11}/> Puxar pra hoje
-            </button>
-          </div>
-        )}
+        <OverdueBanner
+          tasks={overdueTasks}
+          onPullOne={onPullOneOverdue}
+          onPullAll={onPullAllOverdue}
+        />
       </div>
 
       {/* Body */}

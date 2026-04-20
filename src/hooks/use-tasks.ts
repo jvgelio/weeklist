@@ -66,6 +66,7 @@ export const taskKeys = {
   bucket: (bucket: string, includeSubtasks = false) =>
     ['tasks', 'bucket', bucket, includeSubtasks ? 'with-subtasks' : 'no-subtasks'] as const,
   detail: (id: string) => ['tasks', 'detail', id] as const,
+  overdue: (before: string) => ['tasks', 'overdue', before] as const,
 }
 
 // Fetch tasks for a full week
@@ -97,6 +98,15 @@ export function useTaskDetail(taskId: string | null) {
     queryFn: ({ signal }) => api.fetchTaskById(taskId!, signal),
     enabled: Boolean(taskId),
     staleTime: 30_000,
+  })
+}
+
+export function useOverdueTasks(weekStart: Date) {
+  const before = isoDate(weekStart)
+  return useQuery({
+    queryKey: taskKeys.overdue(before),
+    queryFn: ({ signal }) => api.fetchOverdueTasks(before, signal),
+    staleTime: 60_000,
   })
 }
 
@@ -180,6 +190,9 @@ export function useUpdateTask() {
       finishTaskMutation(ctx.id, ctx.token)
       logClientLatency(ctx.clientTrace, 'error')
     },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', 'overdue'] })
+    },
   })
 }
 
@@ -193,6 +206,14 @@ export function useDeleteTask() {
       const cancelPromise = qc.cancelQueries({ queryKey: taskKeys.all() })
       const token = beginTaskMutation(id)
       removeTaskFromCaches(qc, id)
+
+      const overdueQueries = qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'overdue'] })
+      for (const [key, data] of overdueQueries) {
+        if (!data) continue
+        const filtered = data.filter(t => t.id !== id)
+        if (filtered.length !== data.length) qc.setQueryData(key, filtered)
+      }
+
       await cancelPromise
       return { snapshot, id, token }
     },
@@ -226,6 +247,14 @@ export function useMoveTask() {
         applyOptimisticMoveToCaches(qc, task, bucketKey, position, slot)
       }
 
+      // Remove otimisticamente da cache overdue (se a tarefa estava lá)
+      const overdueQueries = qc.getQueriesData<Task[]>({ queryKey: ['tasks', 'overdue'] })
+      for (const [key, data] of overdueQueries) {
+        if (!data) continue
+        const filtered = data.filter(t => t.id !== id)
+        if (filtered.length !== data.length) qc.setQueryData(key, filtered)
+      }
+
       logClientLatency(clientTrace, 'optimistic')
       await cancelPromise
       return { snapshot, id, token, clientTrace }
@@ -234,6 +263,7 @@ export function useMoveTask() {
       if (!ctx) return
       if (!isLatestTaskMutation(ctx.id, ctx.token)) return
       upsertTaskInCaches(qc, serverTask)
+      qc.invalidateQueries({ queryKey: ['tasks', 'overdue'] })
       finishTaskMutation(ctx.id, ctx.token)
       logClientLatency(ctx.clientTrace, 'success')
     },

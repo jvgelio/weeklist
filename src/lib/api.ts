@@ -44,6 +44,17 @@ export async function fetchTasksByBucket(
   return tasks.map(normalizeTask)
 }
 
+export async function fetchOverdueTasks(
+  before: string,
+  signal?: AbortSignal,
+): Promise<Task[]> {
+  const params = new URLSearchParams({ overdue_before: before })
+  const res = await fetch(`${BASE}/tasks?${params.toString()}`, { signal })
+  if (!res.ok) throw new Error(`Failed to fetch overdue tasks: ${res.status}`)
+  const tasks = (await res.json()) as TaskResponse[]
+  return tasks.map(normalizeTask)
+}
+
 export async function fetchTaskById(id: string, signal?: AbortSignal): Promise<Task> {
   const res = await fetch(`${BASE}/tasks/${id}`, { signal })
   if (!res.ok) throw new Error(`Failed to fetch task: ${res.status}`)

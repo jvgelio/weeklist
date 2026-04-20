@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { CalendarDays, Inbox, Clock } from 'lucide-react'
+import { CalendarDays, Inbox, Clock, Settings, MoreVertical } from 'lucide-react'
 import { addDays, isoDate, sameDay, startOfWeek, MONTH_PT } from '../lib/constants'
 import type { View, Variant, TaskMap } from '../lib/types'
 
@@ -215,7 +215,7 @@ export function Sidebar({
 
   const weeks = useMemo(() => {
     const arr: Date[] = []
-    for (let i = -4; i <= 8; i++) {
+    for (let i = -1; i <= 8; i++) {
       arr.push(addDays(currentMonday, i * 7))
     }
     return arr
@@ -332,6 +332,54 @@ export function Sidebar({
         </div>
       )}
 
+      {/* Footer (Settings & User) */}
+      <div style={{
+        marginTop: collapsed ? 'auto' : 0,
+        borderTop: '1px solid var(--line)',
+        padding: collapsed ? '10px 6px' : '10px 10px',
+        display: 'flex', flexDirection: 'column', gap: 2,
+        flexShrink: 0,
+      }}>
+        <ViewButton
+          collapsed={collapsed}
+          icon={<Settings size={14} />}
+          label="Settings"
+          active={false}
+          onClick={() => {}}
+          accent={accent}
+        />
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: collapsed ? '10px 0' : '8px 12px',
+          marginTop: 6,
+          borderRadius: 10,
+          cursor: 'pointer',
+          transition: 'background 120ms ease',
+          justifyContent: collapsed ? 'center' : 'space-between',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--line)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <img
+              src="https://github.com/shadcn.png"
+              alt="shadcn"
+              style={{
+                width: 24, height: 24, borderRadius: 6, objectFit: 'cover', flexShrink: 0
+              }}
+            />
+            {!collapsed && (
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                shadcn
+              </span>
+            )}
+          </div>
+          {!collapsed && (
+            <MoreVertical size={14} color="var(--ink-mute)" style={{ flexShrink: 0 }} />
+          )}
+        </div>
+      </div>
     </aside>
   )
 }

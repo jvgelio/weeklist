@@ -13,7 +13,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { startOfWeek, addDays } from '../lib/constants'
+import { startOfWeek, addDays, isoDate } from '../lib/constants'
 import type { Task, TaskMap, View, Variant } from '../lib/types'
 import * as api from '../lib/api'
 import {
@@ -24,6 +24,7 @@ import {
   useUpdateTask,
   useDeleteTask,
   useMoveTask,
+  useOverdueTasks,
   type ClientMutationTrace,
 } from '../hooks/use-tasks'
 import { Sidebar } from './sidebar'
@@ -152,9 +153,11 @@ export default function App() {
   const weekResult = useWeekTasks(weekStart)
   const inboxResult = useBucketTasks('__inbox')
   const taskDetailResult = useTaskDetail(editingTaskId)
+  const overdueResult = useOverdueTasks(weekStart)
 
   const weekTasks: TaskMap = weekResult.data ?? {}
   const inboxTasks: Task[] = inboxResult.data ?? []
+  const overdueTasks: Task[] = overdueResult.data ?? []
   const inboxMap: TaskMap = useMemo(() => ({ __inbox: inboxTasks }), [inboxTasks])
   const sidebarMap: TaskMap = useMemo(() => ({ ...weekTasks, __inbox: inboxTasks }), [weekTasks, inboxTasks])
 
@@ -342,8 +345,13 @@ export default function App() {
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const id = event.active.id as string
+    if (id.startsWith('overdue:')) {
+      const taskId = id.slice('overdue:'.length)
+      setDraggingTask(overdueTasks.find(t => t.id === taskId) ?? null)
+      return
+    }
     setDraggingTask(allTasks.find((task) => task.id === id) ?? null)
-  }, [allTasks])
+  }, [allTasks, overdueTasks])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setDraggingTask(null)
@@ -355,6 +363,44 @@ export default function App() {
     const overData = over.data?.current as
       | { type?: string; bucketKey?: string; slot?: string | null }
       | undefined
+
+    // Caso 0: drag de tarefa atrasada do OverdueBanner
+    if (typeof active.id === 'string' && (active.id as string).startsWith('overdue:')) {
+      const taskId = (active.id as string).slice('overdue:'.length)
+      let targetBucket: string | null = null
+      let targetSlot: 'am' | 'pm' | null = null
+
+      if (overData?.type === 'zone') {
+        targetBucket = overData.bucketKey!
+        targetSlot = (overData.slot as 'am' | 'pm' | null | undefined) ?? null
+      } else if (/^\d{4}-\d{2}-\d{2}/.test(overId) || overId.includes('weeklist-') || overId.startsWith('__')) {
+        if (overId.includes(':')) {
+          const [bucket, slot] = overId.split(':')
+          targetBucket = bucket
+          targetSlot = slot as 'am' | 'pm'
+        } else {
+          targetBucket = overId
+        }
+      } else {
+        const overTask = allTasks.find(t => t.id === overId)
+        if (overTask) {
+          targetBucket = overTask.bucketKey
+          targetSlot = overTask.slot
+        }
+      }
+
+      if (targetBucket) {
+        const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
+        moveTask.mutate({
+          id: taskId,
+          bucketKey: targetBucket,
+          slot: targetSlot,
+          position: targetList.length,
+          clientTrace: makeClientTrace('move'),
+        })
+      }
+      return
+    }
 
     const task = allTasks.find((entry) => entry.id === taskId)
     if (!task) return
@@ -416,6 +462,32 @@ export default function App() {
     })
   }, [allTasks, inboxTasks, moveTask, weekTasks])
 
+  const handlePullOneOverdue = useCallback((id: string) => {
+    const todayKey = isoDate(TODAY)
+    const targetList = weekTasks[todayKey] ?? []
+    moveTask.mutate({
+      id,
+      bucketKey: todayKey,
+      slot: null,
+      position: targetList.length,
+      clientTrace: makeClientTrace('move'),
+    })
+  }, [moveTask, weekTasks])
+
+  const handlePullAllOverdue = useCallback(() => {
+    const todayKey = isoDate(TODAY)
+    const targetList = weekTasks[todayKey] ?? []
+    overdueTasks.forEach((t, i) => {
+      moveTask.mutate({
+        id: t.id,
+        bucketKey: todayKey,
+        slot: null,
+        position: targetList.length + i,
+        clientTrace: makeClientTrace('move'),
+      })
+    })
+  }, [moveTask, overdueTasks, weekTasks])
+
   const sharedDayProps = useMemo(() => ({
     accent,
     onOpenTask: handleOpenTask,
@@ -457,6 +529,9 @@ export default function App() {
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
               onAddTask={handleAddTask}
               onMoveTask={handleMoveTask}
+              overdueTasks={overdueTasks}
+              onPullOneOverdue={handlePullOneOverdue}
+              onPullAllOverdue={handlePullAllOverdue}
               {...sharedDayProps}
             />
           )}

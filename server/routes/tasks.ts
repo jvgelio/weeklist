@@ -57,6 +57,21 @@ tasksRouter.get('/', async (c) => {
     return c.json({ error: 'from and to must be YYYY-MM-DD' }, 400)
   }
 
+  const overdueBefore = c.req.query('overdue_before')
+  if (overdueBefore) {
+    if (!dateRe.test(overdueBefore)) {
+      return c.json({ error: 'overdue_before must be YYYY-MM-DD' }, 400)
+    }
+    taskList = await db.select().from(tasks)
+      .where(and(
+        lt(tasks.bucketKey, overdueBefore),
+        eq(tasks.done, false),
+        sql`${tasks.bucketKey} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
+      ))
+      .orderBy(tasks.bucketKey, tasks.position)
+    return c.json(taskList)
+  }
+
   if (from && to) {
     const [datedTasks, weeklistTasks] = await Promise.all([
       db.select().from(tasks)
