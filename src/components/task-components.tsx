@@ -422,7 +422,7 @@ export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact 
     return (
       <button
         onClick={() => setEditing(true)}
-        className="ghost-btn"
+        className="add-row"
         style={{
           width: '100%',
           display: 'flex', alignItems: 'center', gap: 8,
@@ -430,6 +430,8 @@ export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact 
           fontSize: 13, color: 'var(--ink-mute)',
           textAlign: 'left',
           borderRadius: 8,
+          border: 'none',
+          background: 'transparent',
           transition: 'all 120ms ease',
         }}
       >
