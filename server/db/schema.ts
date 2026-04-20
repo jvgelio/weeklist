@@ -1,5 +1,11 @@
 import { pgTable, text, boolean, integer, timestamp, index } from 'drizzle-orm/pg-core'
 
+export const tags = pgTable('tags', {
+  id: text('id').primaryKey(),   // slug: 'work', 'my-tag'
+  name: text('name').notNull(),
+  color: text('color').notNull(),   // 'oklch(0.82 0.13 90)'
+})
+
 export const tasks = pgTable('tasks', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
