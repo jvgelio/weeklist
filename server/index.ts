@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { tasksRouter } from './routes/tasks.js'
+import { tagsRouter } from './routes/tags.js'
 
 const app = new Hono()
 
@@ -14,6 +15,7 @@ app.use('/api/*', async (c, next) => {
 
 // API routes
 app.route('/api/tasks', tasksRouter)
+app.route('/api/tags', tagsRouter)
 
 // Static files (production — Vite build output)
 app.use('/*', serveStatic({ root: './dist' }))
