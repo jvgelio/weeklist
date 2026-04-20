@@ -55,6 +55,8 @@ export async function createTask(data: {
   bucketKey: string
   slot?: string
   position: number
+  priority?: string | null
+  tags?: string[]
 }): Promise<Task> {
   const res = await fetch(`${BASE}/tasks`, {
     method: 'POST',
