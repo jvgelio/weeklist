@@ -1,4 +1,4 @@
-# Weeklist — AGENTS.md
+# Weeklist — CLAUDE.md
 
 ## Behavioral Guidelines
 
