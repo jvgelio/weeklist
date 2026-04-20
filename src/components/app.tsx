@@ -30,6 +30,7 @@ import { Sidebar } from './sidebar'
 import { WeekView, ListView } from './views'
 import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
+import { QuickAdd, type QuickAddCreateParams } from './quick-add'
 
 const TODAY = new Date()
 const TEXT_DEBOUNCE_MS = 300
@@ -94,6 +95,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('wl_sidebar_collapsed') === '1')
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draggingTask, setDraggingTask] = useState<Task | null>(null)
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
 
   const textTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const pendingTextPatchRef = useRef<Map<string, TextPatch>>(new Map())
@@ -127,6 +129,13 @@ export default function App() {
   // Keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Alt+Q: global quick add (no view guard)
+      if (e.altKey && e.key === 'q') {
+        e.preventDefault()
+        setShowQuickAdd(true)
+        return
+      }
+
       const tag = (e.target as HTMLElement).tagName?.toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       if (view !== 'week') return
@@ -218,6 +227,21 @@ export default function App() {
       clientTrace: makeClientTrace('create'),
     })
   }, [createTask, inboxTasks.length])
+
+  const handleQuickAdd = useCallback(({ title, bucketKey, priority, tags }: QuickAddCreateParams) => {
+    const tasksInBucket = bucketKey === '__inbox'
+      ? inboxTasks
+      : (weekTasks[bucketKey] ?? [])
+    createTask.mutate({
+      title,
+      bucketKey,
+      slot: 'am',
+      position: tasksInBucket.length,
+      priority: priority ?? undefined,
+      tags,
+      clientTrace: makeClientTrace('create'),
+    })
+  }, [createTask, weekTasks, inboxTasks])
 
   const handleUpdateTask = useCallback((task: Task) => {
     const current = allTasks.find((entry) => entry.id === task.id)
@@ -483,6 +507,19 @@ export default function App() {
           onDelete={handleDeleteTask}
           onClose={handleCloseEditor}
           onMoveTask={handleMoveTask}
+        />
+      )}
+
+      {showQuickAdd && (
+        <QuickAdd
+          weekStart={weekStart}
+          weekTasks={weekTasks}
+          inboxTasks={inboxTasks}
+          onClose={() => setShowQuickAdd(false)}
+          onCreate={(params) => {
+            handleQuickAdd(params)
+            setShowQuickAdd(false)
+          }}
         />
       )}
     </DndContext>
