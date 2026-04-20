@@ -113,8 +113,8 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'var(--surface)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--line-strong)',
           borderRadius: 16,
           boxShadow: 'var(--shadow-pop)',
           width: '100%',
@@ -143,7 +143,7 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
           }}
         />
 
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {/* Date chips */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {dateChips.map((chip) => {
@@ -153,12 +153,12 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                   key={chip.value ?? '__inbox'}
                   onClick={() => setSelectedDate(chip.value)}
                   style={{
-                    background: active ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
-                    border: active ? '1px solid rgba(255,255,255,0.25)' : '1px solid transparent',
+                    background: active ? 'var(--line-strong)' : 'var(--bg-sunken)',
+                    border: active ? '1px solid var(--line-strong)' : '1px solid var(--line)',
                     borderRadius: 6,
                     padding: '4px 10px',
                     fontSize: 12,
-                    color: active ? 'var(--ink)' : 'var(--ink-mute)',
+                    color: active ? 'var(--ink)' : 'var(--ink-soft)',
                     cursor: 'pointer',
                   }}
                 >
@@ -177,12 +177,12 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                   key={opt.value}
                   onClick={() => togglePriority(opt.value)}
                   style={{
-                    background: active ? `${opt.color}22` : 'rgba(255,255,255,0.05)',
-                    border: active ? `1px solid ${opt.color}66` : '1px solid transparent',
+                    background: active ? `${opt.color}22` : 'var(--bg-sunken)',
+                    border: active ? `1px solid ${opt.color}66` : '1px solid var(--line)',
                     borderRadius: 6,
                     padding: '4px 10px',
                     fontSize: 12,
-                    color: active ? opt.color : 'var(--ink-mute)',
+                    color: active ? opt.color : 'var(--ink-soft)',
                     cursor: 'pointer',
                   }}
                 >
@@ -201,12 +201,12 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                   key={key}
                   onClick={() => toggleTag(key)}
                   style={{
-                    background: active ? `${tag.color}22` : 'rgba(255,255,255,0.05)',
-                    border: active ? `1px solid ${tag.color}66` : '1px solid transparent',
+                    background: active ? `${tag.color}22` : 'var(--bg-sunken)',
+                    border: active ? `1px solid ${tag.color}66` : '1px solid var(--line)',
                     borderRadius: 6,
                     padding: '4px 10px',
                     fontSize: 12,
-                    color: active ? tag.color : 'var(--ink-mute)',
+                    color: active ? tag.color : 'var(--ink-soft)',
                     cursor: 'pointer',
                   }}
                 >

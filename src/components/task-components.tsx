@@ -387,9 +387,6 @@ function TaskRowComponent({
             <IconChevron size={14}/>
           </button>
         )}
-        <button onClick={(e) => { e.stopPropagation(); onDelete(task.id) }} className="ghost-btn trash-btn" style={{ padding: '4px 8px' }}>
-          <IconTrash size={14}/>
-        </button>
       </div>
     </div>
   )
