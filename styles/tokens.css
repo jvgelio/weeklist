@@ -113,9 +113,12 @@ input, textarea { font-family: inherit; color: inherit; }
   color: var(--ink-soft);
 }
 
+.row-actions { opacity: 0.35; transition: opacity 120ms ease; }
 .task-row:hover .row-actions { opacity: 1; }
 .task-row:hover .drag-handle { opacity: 1; }
 .task-row:hover { background: var(--line) !important; }
+.task-row:hover .trash-btn { opacity: 0.4; transition: opacity 120ms ease; }
+.trash-btn:hover { opacity: 1 !important; }
 .add-row:hover { color: var(--ink-soft) !important; background: var(--line) !important; }
 
 ::selection { background: var(--accent); color: var(--accent-ink); }

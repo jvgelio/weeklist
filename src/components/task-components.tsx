@@ -1,133 +1,60 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import {
+  Check, Plus, ChevronRight, Repeat2, Flag, GripVertical,
+  Trash2, ArrowRight, Inbox, Clock, CalendarDays, Sun, Moon,
+  ExternalLink,
+} from 'lucide-react'
 import { TAGS } from '../lib/constants'
 import type { Task } from '../lib/types'
 
-// ---- Icons ----
+// ---- Icons (Lucide wrappers keeping same API) ----
 
 interface IconProps { size?: number }
 interface ChevronProps extends IconProps { dir?: 'right' | 'down' | 'left' | 'up' }
 interface ArrowProps extends IconProps { dir?: 'right' | 'left' | 'up' | 'down' }
 
 export function IconCheck({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <Check size={size} strokeWidth={2.5}/>
 }
-
 export function IconPlus({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  )
+  return <Plus size={size}/>
 }
-
 export function IconChevron({ size = 14, dir = 'right' }: ChevronProps) {
   const r = { right: 0, down: 90, left: 180, up: -90 }[dir]
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ transform: `rotate(${r}deg)` }}>
-      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <ChevronRight size={size} style={{ transform: `rotate(${r}deg)`, flexShrink: 0 }}/>
 }
-
 export function IconRepeat({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 6l2-2h6a2 2 0 012 2v1M13 10l-2 2H5a2 2 0 01-2-2V9"
-        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <Repeat2 size={size}/>
 }
-
 export function IconFlag({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M4 2v12M4 3h7l-1.5 2.5L11 8H4"
-        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <Flag size={size}/>
 }
-
 export function IconDrag({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <circle cx="6" cy="4" r="1.2" fill="currentColor"/>
-      <circle cx="10" cy="4" r="1.2" fill="currentColor"/>
-      <circle cx="6" cy="8" r="1.2" fill="currentColor"/>
-      <circle cx="10" cy="8" r="1.2" fill="currentColor"/>
-      <circle cx="6" cy="12" r="1.2" fill="currentColor"/>
-      <circle cx="10" cy="12" r="1.2" fill="currentColor"/>
-    </svg>
-  )
+  return <GripVertical size={size}/>
 }
-
 export function IconTrash({ size = 12 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M3 4h10M6 4V2.5h4V4M5 4l.5 9a1.5 1.5 0 001.5 1.4h2a1.5 1.5 0 001.5-1.4L11 4"
-        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <Trash2 size={size}/>
 }
-
 export function IconArrow({ size = 12, dir = 'right' }: ArrowProps) {
   const r = { right: 0, left: 180, up: -90, down: 90 }[dir]
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ transform: `rotate(${r}deg)` }}>
-      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <ArrowRight size={size} style={{ transform: `rotate(${r}deg)`, flexShrink: 0 }}/>
 }
-
 export function IconInbox({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M2 9l2-5h8l2 5v4H2V9zM2 9h4l1 1h2l1-1h4"
-        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <Inbox size={size}/>
 }
-
 export function IconSomeday({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M8 5v3l2 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  )
+  return <Clock size={size}/>
 }
-
 export function IconWeek({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="3.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M2 6.5h12M5.5 2v2.5M10.5 2v2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  )
+  return <CalendarDays size={size}/>
 }
-
 export function IconSun({ size = 13 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4"
-        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  )
+  return <Sun size={size}/>
 }
-
 export function IconMoon({ size = 13 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M13 10A6 6 0 016 3a6 6 0 100 10 6 6 0 007-3z"
-        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+  return <Moon size={size}/>
 }
 
 // Namespace object for components that use Icon.X syntax
@@ -187,6 +114,22 @@ export function TagDot({ tag }: { tag: string }) {
   )
 }
 
+// ---- TagHash ----
+
+export function TagHash({ tag }: { tag: string }) {
+  const t = TAGS[tag]
+  if (!t) return null
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 600,
+      color: t.color,
+      letterSpacing: '-0.01em',
+    }}>
+      #{t.label}
+    </span>
+  )
+}
+
 // ---- Checkbox ----
 
 interface CheckboxProps {
@@ -196,6 +139,7 @@ interface CheckboxProps {
 }
 
 export function Checkbox({ checked, onChange, accent }: CheckboxProps) {
+  const color = accent ?? 'var(--accent)'
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onChange(!checked) }}
@@ -203,13 +147,14 @@ export function Checkbox({ checked, onChange, accent }: CheckboxProps) {
       style={{
         width: 18, height: 18, flexShrink: 0,
         borderRadius: 5,
-        border: '1.5px solid var(--line-strong)',
-        background: checked ? (accent ?? 'var(--accent)') : 'transparent',
+        border: `1.5px solid ${checked ? color : color === 'var(--accent)' ? 'var(--line-strong)' : color}`,
+        background: checked ? color : 'transparent',
         color: checked ? '#fff' : 'transparent',
         display: 'grid', placeItems: 'center',
         padding: 0,
         transition: 'all 120ms ease',
         cursor: 'pointer',
+        opacity: checked ? 1 : 0.7,
       }}
     >
       <IconCheck size={11}/>
@@ -235,6 +180,49 @@ export function PriorityFlag({ priority }: { priority: Task['priority'] }) {
   )
 }
 
+// ---- NoteSnippet ----
+
+function NoteSnippet({ note }: { note: string | null }) {
+  if (!note?.trim()) return null
+  const firstLine = note.split('\n').find(l => l.trim()) ?? ''
+  const trimmed = firstLine.trim()
+  const isUrl = /^https?:\/\//i.test(trimmed)
+
+  if (isUrl) {
+    // href = full URL; display text truncated via CSS so link stays functional
+    return (
+      <a
+        href={trimmed}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        title={trimmed}
+        style={{
+          fontSize: 12, color: 'var(--accent)',
+          display: 'flex', alignItems: 'center', gap: 3,
+          marginTop: 2,
+          textDecoration: 'none',
+          minWidth: 0,
+        }}
+      >
+        <ExternalLink size={10} style={{ flexShrink: 0 }}/>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {trimmed}
+        </span>
+      </a>
+    )
+  }
+  return (
+    <div style={{
+      fontSize: 12, color: 'var(--ink-mute)',
+      marginTop: 2,
+      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+    }}>
+      {trimmed}
+    </div>
+  )
+}
+
 // ---- TaskRow ----
 
 interface TaskRowProps {
@@ -257,7 +245,6 @@ function TaskRowComponent({
   isOverlay = false,
 }: TaskRowProps) {
   const [editing, setEditing] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [draft, setDraft] = useState(task.title)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -284,11 +271,19 @@ function TaskRowComponent({
   const subDone  = task.subtasks.filter(s => s.done).length
   const subTotal = task.subtasks.length
 
+  const priorityAccent =
+    task.priority === 'high' ? 'var(--prio-high)' :
+    task.priority === 'med'  ? 'var(--prio-med)'  :
+    task.priority === 'low'  ? 'var(--prio-low)'  :
+    undefined
+
   function commit() {
     const v = draft.trim()
     if (v) onChange({ ...task, title: v })
     setEditing(false)
   }
+
+  const hasBody = !!(task.note?.trim() || task.recurring || subTotal > 0 || task.tags.length > 0)
 
   return (
     <div
@@ -329,7 +324,7 @@ function TaskRowComponent({
       <Checkbox
         checked={task.done}
         onChange={(v) => onChange({ ...task, done: v })}
-        accent={accent}
+        accent={priorityAccent ?? accent}
       />
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -352,39 +347,47 @@ function TaskRowComponent({
             textDecoration: task.done ? 'line-through' : 'none',
             whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             cursor: 'text',
-          }} onClick={() => setEditing(true)}>
+          }} onClick={(e) => { e.stopPropagation(); setEditing(true) }}>
             {task.title}
           </div>
         )}
 
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 4,
-          alignItems: 'center',
-        }}>
-          {task.priority && <PriorityFlag priority={task.priority}/>}
-          {task.recurring && (
-            <span style={{ color: 'var(--ink-mute)', fontSize: 10 }}>
-              <IconRepeat size={10}/> {task.recurring}
-            </span>
-          )}
-          {subTotal > 0 && (
-            <span style={{ color: 'var(--ink-mute)', fontSize: 10, fontWeight: 600 }}>
-              {subDone}/{subTotal}
-            </span>
-          )}
-          {task.tags.map(t => <TagDot key={t} tag={t}/>)}
-        </div>
+        {hasBody && (
+          <div
+            onClick={() => onOpen?.(task)}
+            style={{ cursor: onOpen ? 'pointer' : undefined }}
+          >
+            <NoteSnippet note={task.note}/>
+
+            {(task.recurring || subTotal > 0 || task.tags.length > 0) && (
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4,
+                alignItems: 'center',
+              }}>
+                {task.recurring && (
+                  <span style={{ color: 'var(--ink-mute)', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <IconRepeat size={11}/>{task.recurring}
+                  </span>
+                )}
+                {subTotal > 0 && (
+                  <span style={{ color: 'var(--ink-mute)', fontSize: 11, fontWeight: 600 }}>
+                    {subDone}/{subTotal}
+                  </span>
+                )}
+                {task.tags.map(t => <TagHash key={t} tag={t}/>)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="row-actions" style={{
-        display: 'flex', gap: 4, opacity: 0, transition: 'opacity 120ms ease',
-      }}>
+      <div className="row-actions" style={{ display: 'flex', gap: 4 }}>
         {onOpen && (
-          <button onClick={() => onOpen(task)} className="ghost-btn" style={{ padding: '4px 8px' }}>
+          <button onClick={(e) => { e.stopPropagation(); onOpen(task) }} className="ghost-btn" style={{ padding: '4px 8px' }}>
             <IconChevron size={14}/>
           </button>
         )}
-        <button onClick={() => onDelete(task.id)} className="ghost-btn" style={{ padding: '4px 8px' }}>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(task.id) }} className="ghost-btn trash-btn" style={{ padding: '4px 8px' }}>
           <IconTrash size={14}/>
         </button>
       </div>

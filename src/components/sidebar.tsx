@@ -1,37 +1,19 @@
 import React, { useMemo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
+import { CalendarDays, Inbox, Clock } from 'lucide-react'
 import { addDays, isoDate, sameDay, startOfWeek, MONTH_PT } from '../lib/constants'
 import type { View, Variant, TaskMap } from '../lib/types'
 
-// ---- Inline icons needed by the sidebar ----
+// ---- Icons ----
 
-interface IconProps { size?: number }
-
-function IconWeek({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="3.5" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M2 6.5h12M5.5 2v2.5M10.5 2v2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  )
+function IconWeek({ size = 14 }: { size?: number }) {
+  return <CalendarDays size={size}/>
 }
-
-function IconInbox({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <path d="M2 9l2-5h8l2 5v4H2V9zM2 9h4l1 1h2l1-1h4"
-        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  )
+function IconInbox({ size = 14 }: { size?: number }) {
+  return <Inbox size={size}/>
 }
-
-function IconSomeday({ size = 14 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M8 5v3l2 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  )
+function IconSomeday({ size = 14 }: { size?: number }) {
+  return <Clock size={size}/>
 }
 
 // ---- getWeekNumber ----
