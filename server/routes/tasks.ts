@@ -126,6 +126,9 @@ tasksRouter.post('/', async (c) => {
   if (!body.title || !body.bucketKey || body.position === undefined) {
     return c.json({ error: 'title, bucketKey, and position are required' }, 400)
   }
+  if (body.title.length > 255) {
+    return c.json({ error: 'title exceeds 255 characters' }, 400)
+  }
 
   const id = randomUUID()
   const now = new Date()
@@ -166,7 +169,10 @@ tasksRouter.patch('/:id', async (c) => {
   }>()
 
   const allowed: Partial<typeof tasks.$inferInsert> = {}
-  if (body.title !== undefined) allowed.title = body.title
+  if (body.title !== undefined) {
+    if (body.title.length > 255) return c.json({ error: 'title exceeds 255 characters' }, 400)
+    allowed.title = body.title
+  }
   if (body.done !== undefined) allowed.done = body.done
   if (body.slot !== undefined) allowed.slot = body.slot
   if (body.priority !== undefined) allowed.priority = body.priority

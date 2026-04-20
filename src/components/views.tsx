@@ -250,8 +250,8 @@ export function WeekView({
 }: WeekViewProps) {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
   const visibleDays = useMemo(
-    () => showWeekend ? days : days.filter((d) => d.getDay() !== 0 && d.getDay() !== 6),
-    [days, showWeekend],
+    () => days.filter((d) => d.getDay() !== 0 && d.getDay() !== 6),
+    [days],
   )
   const weekend = useMemo(
     () => days.filter((d) => d.getDay() === 0 || d.getDay() === 6),
@@ -356,14 +356,14 @@ export function WeekView({
                   key={key} date={d}
                   tasks={tasks[key] ?? []}
                   isToday={sameDay(d, TODAY)}
-                  isWeekend={d.getDay() === 0 || d.getDay() === 6}
-                  compact={showWeekend}
+                  isWeekend={false}
+                  compact={false}
                   {...dayProps}
                 />
               )
             })}
           </div>
-          {!showWeekend && (
+          {showWeekend && (
             <WeekendColumnsStrip
               days={weekend} tasks={tasks}
               {...dayProps}
@@ -382,13 +382,13 @@ export function WeekView({
                     tasks={tasks[key] ?? []}
                     variant={variant}
                     isToday={sameDay(d, TODAY)}
-                    isWeekend={d.getDay() === 0 || d.getDay() === 6}
+                    isWeekend={false}
                     {...dayProps}
                   />
                 )
               })}
             </div>
-            {!showWeekend && (
+            {showWeekend && (
               <WeekendStrip
                 days={weekend} tasks={tasks} variant={variant}
                 {...dayProps}

@@ -347,9 +347,17 @@ function TaskRowComponent({
             fontSize: 14, fontWeight: 500,
             color: task.done ? 'var(--ink-mute)' : 'var(--ink)',
             textDecoration: task.done ? 'line-through' : 'none',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-            cursor: 'text',
-          }} onClick={(e) => { e.stopPropagation(); setEditing(true) }}>
+            wordBreak: 'break-word',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            cursor: onOpen ? 'pointer' : 'text',
+          }} onClick={(e) => { 
+            e.stopPropagation(); 
+            if (onOpen) onOpen(task); 
+            else setEditing(true); 
+          }}>
             {task.title}
           </div>
         )}
@@ -485,6 +493,7 @@ export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact,
         onChange={setVal}
         placeholder="O que precisa ser feito?"
         inputStyle={inputStyle}
+        maxLength={255}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === 'Enter') { e.preventDefault(); commit() }

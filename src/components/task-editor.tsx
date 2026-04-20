@@ -159,6 +159,7 @@ export function TaskEditor({
             value={draft.title}
             onChange={(e) => updateText({ title: e.target.value })}
             onBlur={flushText}
+            maxLength={255}
             onKeyDown={(e) => {
               if (e.key !== 'Enter') return
               e.preventDefault()

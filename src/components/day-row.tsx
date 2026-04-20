@@ -188,7 +188,7 @@ function DayColumnComponent({
         flex: compact ? '0 0 240px' : '1 1 0',
         minWidth: compact ? 240 : 200,
         display: 'flex', flexDirection: 'column',
-        background: isToday ? 'var(--bg-sunken)' : 'transparent',
+        background: 'transparent',
         borderRadius: 0,
         boxShadow: 'none',
         borderRight: '1px dashed var(--line)',
@@ -202,7 +202,7 @@ function DayColumnComponent({
       {/* Column header */}
       <div style={{
         padding: '10px 0px 14px',
-        borderBottom: '1px solid var(--line)',
+        borderBottom: isToday ? `2px solid ${accent ?? 'var(--accent)'}` : '1px solid var(--line)',
         display: 'flex', alignItems: 'baseline', gap: 8,
         background: 'transparent',
         flexShrink: 0,
@@ -216,7 +216,11 @@ function DayColumnComponent({
           {dayShort.toLowerCase()}
         </span>
         <span style={{
-          fontSize: 10, fontWeight: 500, color: 'var(--ink-mute)',
+          fontSize: 10, fontWeight: 600,
+          color: isToday ? 'var(--accent-ink)' : 'var(--ink-mute)',
+          background: isToday ? (accent ?? 'var(--accent)') : 'transparent',
+          padding: isToday ? '2px 6px' : '0',
+          borderRadius: 999,
           fontFamily: 'var(--font-mono)',
         }}>
           {String(dayNum).padStart(2, '0')}
@@ -235,41 +239,46 @@ function DayColumnComponent({
 
       {/* Column content */}
       <div style={{
-        flex: 1, padding: '12px 0 4px',
+        flex: 1, padding: '12px 4px 4px',
         display: 'flex', flexDirection: 'column',
         overflowY: 'auto', minHeight: 100, gap: 4,
+        background: 'transparent',
       }}>
         <div ref={setAmRef} style={{ 
           background: isOverAm ? 'var(--accent-soft)' : 'transparent', 
           border: isOverAm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
           borderRadius: 12, 
           transition: 'all 120ms ease', 
-          padding: '4px 0', 
-          minHeight: 60 
+          padding: '4px', 
+          minHeight: 'calc(50% - 2px)', // Metade da coluna como padrão
+          flex: '0 0 auto', 
+          display: 'flex', flexDirection: 'column',
         }}>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--color-am) 70%, var(--ink-soft))', padding: '0 0 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
             <IconSun size={8}/> manhã
           </div>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
+          <div style={{ flex: 1 }} /> {/* Espaçador para empurrar o add-row pro final, opcional */}
           <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
         </div>
 
-        <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
+        <div style={{ margin: '8px 4px', borderTop: '1px dotted var(--line-strong)', opacity: 0.4 }} />
 
         <div ref={setPmRef} style={{ 
           background: isOverPm ? 'var(--accent-soft)' : 'transparent', 
           border: isOverPm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
           borderRadius: 12, 
           transition: 'all 120ms ease', 
-          padding: '4px 0', 
-          minHeight: 60 
+          padding: '4px', 
+          flex: '1 0 auto',
+          display: 'flex', flexDirection: 'column',
         }}>
           <div style={{
             fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: 'var(--ink-faint)',
-            padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4,
+            textTransform: 'uppercase', color: 'color-mix(in srgb, var(--color-pm) 70%, var(--ink-soft))',
+            padding: '0 0 3px', display: 'flex', alignItems: 'center', gap: 4,
           }}>
             <IconMoon size={8}/> tarde
           </div>
@@ -277,6 +286,7 @@ function DayColumnComponent({
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
+          <div style={{ flex: 1 }} />
           <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
         </div>
       </div>

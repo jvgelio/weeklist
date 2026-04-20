@@ -59,7 +59,8 @@ export function HighlightedInput({
   inputClassName,
   inputStyle,
   autoFocus,
-}: HighlightedInputProps) {
+  maxLength,
+}: HighlightedInputProps & { maxLength?: number }) {
   const mirrorRef = useRef<HTMLDivElement>(null)
   const internalRef = useRef<HTMLInputElement>(null)
   const inputEl = externalRef ?? internalRef
@@ -129,6 +130,7 @@ export function HighlightedInput({
         value={value}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
