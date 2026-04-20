@@ -15,6 +15,13 @@
       "when": 1776594000000,
       "tag": "0001_fluidez_total_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776718622532,
+      "tag": "0002_lean_ghost_rider",
+      "breakpoints": true
     }
   ]
 }
