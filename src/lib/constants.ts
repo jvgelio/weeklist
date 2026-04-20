@@ -17,6 +17,17 @@ export const PRIORITY_COLORS: Record<string, string> = {
 export const DAY_NAMES_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 export const DAY_NAMES_LONG_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 export const MONTH_PT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
+export const MONTH_PT_LONG = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+
+export const DAY_INDEX_PT: Record<string, number> = {
+  dom: 0, domingo: 0,
+  seg: 1, segunda: 1,
+  ter: 2, terça: 2, terca: 2,
+  qua: 3, quarta: 3,
+  qui: 4, quinta: 4,
+  sex: 5, sexta: 5,
+  sáb: 6, sab: 6, sábado: 6, sabado: 6,
+}
 
 export function startOfWeek(date: Date, weekStart = 1): Date {
   const d = new Date(date)

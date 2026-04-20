@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import type { Task, TaskMap, Priority } from '../lib/types'
 import { TAGS, PRIORITY_COLORS, DAY_NAMES_PT, isoDate, addDays } from '../lib/constants'
+import { parseNL } from '../lib/nl-parse'
+import { HighlightedInput } from './highlighted-input'
 
 export interface QuickAddCreateParams {
   title: string
@@ -29,7 +31,6 @@ function buildDateChips(weekStart: Date): Array<{ label: string; value: string |
   chips.push({ label: 'hoje', value: isoDate(TODAY) })
   chips.push({ label: 'amanhã', value: isoDate(tomorrow) })
 
-  // Remaining days of current week, skip today and tomorrow, skip past days
   for (let i = 0; i < 7; i++) {
     const day = addDays(weekStart, i)
     const key = isoDate(day)
@@ -48,52 +49,118 @@ const PRIORITY_OPTIONS: Array<{ value: Priority; label: string; color: string }>
 ]
 
 export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
-  const [title, setTitle] = useState('')
-  const [selectedDate, setSelectedDate] = useState<string | null>(null) // null = inbox
-  const [priority, setPriority] = useState<Priority | null>(null)
-  const [tags, setTags] = useState<string[]>([])
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [title, setTitle]               = useState('')
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [priority, setPriority]         = useState<Priority | null>(null)
+  const [tags, setTags]                 = useState<string[]>([])
 
+  // Track which fields were manually set by chip click (manual wins over NL)
+  const [manualDate, setManualDate]         = useState(false)
+  const [manualPriority, setManualPriority] = useState(false)
+  const [manualTags, setManualTags]         = useState<Set<string>>(new Set())
+
+  // NL pulse: briefly highlight chips that were auto-selected
+  const [pulseDate, setPulseDate]         = useState(false)
+  const [pulsePriority, setPulsePriority] = useState(false)
+  const [pulseTags, setPulseTags]         = useState<Set<string>>(new Set())
+
+  const inputRef  = useRef<HTMLInputElement>(null)
   const dateChips = buildDateChips(weekStart)
 
+  const parsed = useMemo(() => parseNL(title, TODAY, weekStart), [title, weekStart])
+
+  // Sync NL-detected date to selectedDate when no manual override
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    if (manualDate) return
+    const nlDate = parsed.date ?? null
+    if (nlDate !== selectedDate) {
+      setSelectedDate(nlDate)
+      if (nlDate !== null) {
+        setPulseDate(true)
+        const t = setTimeout(() => setPulseDate(false), 600)
+        return () => clearTimeout(t)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed.date, manualDate])
+
+  // Sync NL-detected priority
+  useEffect(() => {
+    if (manualPriority) return
+    if (parsed.priority !== priority) {
+      setPriority(parsed.priority)
+      if (parsed.priority !== null) {
+        setPulsePriority(true)
+        const t = setTimeout(() => setPulsePriority(false), 600)
+        return () => clearTimeout(t)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed.priority, manualPriority])
+
+  // Sync NL-detected tags (merge with manual tags)
+  useEffect(() => {
+    const nlTags   = parsed.tags
+    const newPulse = new Set<string>()
+    setTags((prev) => {
+      const manual = prev.filter((t) => manualTags.has(t))
+      const merged = [...new Set([...manual, ...nlTags])]
+      nlTags.forEach((t) => { if (!manualTags.has(t)) newPulse.add(t) })
+      return merged
+    })
+    if (newPulse.size > 0) {
+      setPulseTags(newPulse)
+      const t = setTimeout(() => setPulseTags(new Set()), 600)
+      return () => clearTimeout(t)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed.tags.join(',')])
+
+  useEffect(() => { inputRef.current?.focus() }, [])
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
   function handleSubmit() {
-    const trimmed = title.trim()
+    const trimmed = parsed.cleanTitle || title.trim()
     if (!trimmed) return
-    onCreate({
-      title: trimmed,
-      bucketKey: selectedDate ?? '__inbox',
-      priority,
-      tags,
-    })
+    onCreate({ title: trimmed, bucketKey: selectedDate ?? '__inbox', priority, tags })
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleSubmit()
-    }
+    if (e.key === 'Enter') { e.preventDefault(); handleSubmit() }
   }
 
   function toggleTag(key: string) {
-    setTags((prev) =>
-      prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key]
-    )
+    setManualTags((prev) => {
+      const next = new Set(prev)
+      if (tags.includes(key)) { next.delete(key) } else { next.add(key) }
+      return next
+    })
+    setTags((prev) => prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key])
   }
 
   function togglePriority(value: Priority) {
+    setManualPriority(true)
     setPriority((prev) => (prev === value ? null : value))
+  }
+
+  function selectDate(value: string | null) {
+    setManualDate(true)
+    setSelectedDate(value)
+  }
+
+  const inputStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    outline: 'none',
+    fontSize: 17,
+    color: 'var(--ink)',
+    width: '100%',
+    padding: 0,
   }
 
   return (
@@ -125,22 +192,15 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
           gap: 12,
         }}
       >
-        {/* Title input */}
-        <input
-          ref={inputRef}
+        {/* Title input with NL syntax highlighting */}
+        <HighlightedInput
+          inputRef={inputRef}
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          tokens={parsed.tokens}
+          onChange={setTitle}
           onKeyDown={handleKeyDown}
           placeholder="Tarefa..."
-          style={{
-            background: 'none',
-            border: 'none',
-            outline: 'none',
-            fontSize: 17,
-            color: 'var(--ink)',
-            width: '100%',
-            padding: 0,
-          }}
+          inputStyle={inputStyle}
         />
 
         <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -151,7 +211,7 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
               return (
                 <button
                   key={chip.value ?? '__inbox'}
-                  onClick={() => setSelectedDate(chip.value)}
+                  onClick={() => selectDate(chip.value)}
                   style={{
                     background: active ? 'var(--line-strong)' : 'var(--bg-sunken)',
                     border: active ? '1px solid var(--line-strong)' : '1px solid var(--line)',
@@ -160,6 +220,8 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                     fontSize: 12,
                     color: active ? 'var(--ink)' : 'var(--ink-soft)',
                     cursor: 'pointer',
+                    boxShadow: pulseDate && active ? '0 0 0 2px var(--accent)' : 'none',
+                    transition: 'box-shadow 150ms ease',
                   }}
                 >
                   {chip.label}
@@ -184,6 +246,8 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                     fontSize: 12,
                     color: active ? opt.color : 'var(--ink-soft)',
                     cursor: 'pointer',
+                    boxShadow: pulsePriority && active ? `0 0 0 2px ${opt.color}` : 'none',
+                    transition: 'box-shadow 150ms ease',
                   }}
                 >
                   {opt.label}
@@ -208,12 +272,32 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                     fontSize: 12,
                     color: active ? tag.color : 'var(--ink-soft)',
                     cursor: 'pointer',
+                    boxShadow: pulseTags.has(key) && active ? `0 0 0 2px ${tag.color}` : 'none',
+                    transition: 'box-shadow 150ms ease',
                   }}
                 >
                   # {tag.label}
                 </button>
               )
             })}
+            {/* NL-detected tags not in predefined list */}
+            {parsed.tags
+              .filter((t) => !(t in TAGS))
+              .map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    background: 'rgba(167,139,250,0.15)',
+                    border: '1px solid rgba(167,139,250,0.4)',
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    color: '#a78bfa',
+                  }}
+                >
+                  # {t}
+                </span>
+              ))}
           </div>
         </div>
 

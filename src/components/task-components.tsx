@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -6,8 +6,10 @@ import {
   Trash2, ArrowRight, Inbox, Clock, CalendarDays, Sun, Moon,
   ExternalLink,
 } from 'lucide-react'
-import { TAGS } from '../lib/constants'
+import { TAGS, startOfWeek } from '../lib/constants'
 import type { Task } from '../lib/types'
+import { parseNL, type NLParsedData, type NLToken, type TokenKind } from '../lib/nl-parse'
+import { HighlightedInput } from './highlighted-input'
 
 // ---- Icons (Lucide wrappers keeping same API) ----
 
@@ -396,24 +398,45 @@ export const TaskRow = React.memo(TaskRowComponent)
 
 // ---- InlineAdd ----
 
+export { NLParsedData }
+
 interface InlineAddProps {
-  onAdd: (title: string) => void
+  onAdd: (title: string, parsed?: NLParsedData) => void
   placeholder?: string
   compact?: boolean
+  weekStart?: Date
 }
 
-export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact }: InlineAddProps) {
+const TOKEN_BADGE_COLORS: Record<TokenKind, string> = {
+  date:     '#38bdf8',
+  slot:     '#38bdf8',
+  priority: '#d63b2a',
+  tag:      '#a78bfa',
+}
+
+export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact, weekStart }: InlineAddProps) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d }, [])
+  const ws = useMemo(() => weekStart ?? startOfWeek(today, 1), [weekStart, today])
+  const parsed = useMemo(() => parseNL(val, today, ws), [val, today, ws])
 
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.focus()
   }, [editing])
 
   function commit() {
-    const v = val.trim()
-    if (v) onAdd(v)
+    const clean = parsed.cleanTitle || val.trim()
+    if (clean) {
+      onAdd(clean, {
+        priority: parsed.priority,
+        tags:     parsed.tags,
+        slot:     parsed.slot,
+        date:     parsed.date,
+      })
+    }
     setVal('')
     setEditing(false)
   }
@@ -441,28 +464,52 @@ export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact 
     )
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '6px 10px',
+    borderRadius: 8,
+    border: '1.5px solid var(--accent)',
+    background: 'var(--bg)',
+    fontSize: 14,
+    color: 'var(--ink)',
+    outline: 'none',
+  }
+
   return (
     <div style={{ padding: '0 4px' }}>
-      <input
-        ref={inputRef}
-        className="task-input"
-        placeholder="O que precisa ser feito?"
+      <HighlightedInput
+        inputRef={inputRef}
+        inputClassName="task-input"
         value={val}
-        onChange={(e) => setVal(e.target.value)}
+        tokens={parsed.tokens}
+        onChange={setVal}
+        placeholder="O que precisa ser feito?"
+        inputStyle={inputStyle}
         onBlur={commit}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') commit()
+          if (e.key === 'Enter') { e.preventDefault(); commit() }
           if (e.key === 'Escape') { setVal(''); setEditing(false) }
         }}
-        style={{
-          width: '100%',
-          padding: '6px 10px',
-          borderRadius: 8,
-          border: '1.5px solid var(--accent)',
-          background: 'var(--bg)',
-          fontSize: 14,
-        }}
       />
+      {parsed.tokens.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', padding: '4px 10px 2px' }}>
+          {parsed.tokens.map((tok, i) => (
+            <span
+              key={i}
+              style={{
+                fontSize: 11,
+                padding: '1px 6px',
+                borderRadius: 4,
+                background: `${TOKEN_BADGE_COLORS[tok.kind]}22`,
+                color: TOKEN_BADGE_COLORS[tok.kind],
+                border: `1px solid ${TOKEN_BADGE_COLORS[tok.kind]}44`,
+              }}
+            >
+              {tok.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
