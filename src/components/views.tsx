@@ -405,7 +405,7 @@ export function ListView({
               onChange={onUpdateTask} onDelete={onDeleteTask}/>
           ))}
         </SortableContext>
-        <InlineAdd onAdd={t => onAddTask(bucket, t)} />
+        <InlineAdd onAdd={t => onAddTask(bucket, t)} placeholder="Adicionar tarefa" />
       </div>
     </div>
   )

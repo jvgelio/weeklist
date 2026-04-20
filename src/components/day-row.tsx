@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
 import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, isoDate, sameDay } from '../lib/constants'
 import type { Task } from '../lib/types'
-import { TaskRow, InlineAdd, LunchDivider, IconSun, IconChevron } from './task-components'
+import { TaskRow, InlineAdd, LunchDivider, IconSun, IconMoon, IconChevron } from './task-components'
 
 // ---- DayRow (manifesto + quiet variants) ----
 
@@ -102,8 +102,11 @@ function DayRowComponent({
         }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <IconSun size={8}/> manhã
+              </div>
               {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder={amTasks.length === 0 ? 'Manhã…' : 'Adicionar'}/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
             </div>
           </SortableContext>
         </div>
@@ -120,8 +123,11 @@ function DayRowComponent({
         }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <IconMoon size={8}/> tarde
+              </div>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder={pmTasks.length === 0 ? 'Tarde…' : 'Adicionar'}/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
             </div>
           </SortableContext>
         </div>
@@ -241,10 +247,13 @@ function DayColumnComponent({
           padding: '4px 0', 
           minHeight: 60 
         }}>
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <IconSun size={8}/> manhã
+          </div>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
-          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="manhã"/>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
         </div>
 
         <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
@@ -262,13 +271,13 @@ function DayColumnComponent({
             textTransform: 'uppercase', color: 'var(--ink-faint)',
             padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            <IconSun size={8}/> tarde
+            <IconMoon size={8}/> tarde
           </div>
 
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
-          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="tarde"/>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
         </div>
       </div>
     </section>
@@ -436,8 +445,11 @@ function WeekendDayCell({
         <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <IconSun size={8}/> manhã
+              </div>
               {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="manhã"/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
             </div>
           </SortableContext>
         </div>
@@ -447,8 +459,11 @@ function WeekendDayCell({
         <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <IconMoon size={8}/> tarde
+              </div>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="tarde"/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
             </div>
           </SortableContext>
         </div>
@@ -542,7 +557,7 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
                 <InlineAdd 
                   compact 
                   onAdd={title => onAddTask(bucketKey, title, 'am')} 
-                  placeholder="Adicionar à weeklist…" 
+                  placeholder="Adicionar tarefa" 
                 />
               </div>
             </>
@@ -612,7 +627,7 @@ export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask,
           </SortableContext>
         )}
         <div style={{ marginTop: 4 }}>
-          <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar a weeklist…" />
+          <InlineAdd compact onAdd={title => onAddTask(bucketKey, title, 'am')} placeholder="Adicionar tarefa" />
         </div>
       </div>
     </div>
