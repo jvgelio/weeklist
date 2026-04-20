@@ -103,7 +103,7 @@ function DayRowComponent({
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder={amTasks.length === 0 ? 'Manhã…' : '+'}/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder={amTasks.length === 0 ? 'Manhã…' : 'Adicionar'}/>
             </div>
           </SortableContext>
         </div>
@@ -121,7 +121,7 @@ function DayRowComponent({
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder={pmTasks.length === 0 ? 'Tarde…' : '+'}/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder={pmTasks.length === 0 ? 'Tarde…' : 'Adicionar'}/>
             </div>
           </SortableContext>
         </div>
@@ -244,7 +244,7 @@ function DayColumnComponent({
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
-          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="manhã"/>
         </div>
 
         <div style={{ margin: '4px 4px', height: 1, background: 'var(--line)' }}/>
@@ -268,7 +268,7 @@ function DayColumnComponent({
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
           </SortableContext>
-          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="tarde"/>
         </div>
       </div>
     </section>
@@ -437,7 +437,7 @@ function WeekendDayCell({
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="+ manhã"/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="manhã"/>
             </div>
           </SortableContext>
         </div>
@@ -448,7 +448,7 @@ function WeekendDayCell({
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="+ tarde"/>
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="tarde"/>
             </div>
           </SortableContext>
         </div>
