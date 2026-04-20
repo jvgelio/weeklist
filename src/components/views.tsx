@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { MONTH_PT, DAY_NAMES_PT, isoDate, sameDay, addDays } from '../lib/constants'
+import { MONTH_PT, DAY_NAMES_PT, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
 import type { Task, TaskMap, Variant } from '../lib/types'
 import {
   DayRow, DayColumn,
@@ -21,8 +21,8 @@ interface ViewModeToggleProps {
 
 export function ViewModeToggle({ variant, onChange }: ViewModeToggleProps) {
   const opts: { id: Variant; label: string }[] = [
-    { id: 'quiet',   label: 'Lista'   },
     { id: 'columns', label: 'Colunas' },
+    { id: 'quiet', label: 'Lista' },
   ]
   return (
     <div style={{
@@ -265,10 +265,12 @@ export function WeekView({
     : `${weekStart.getDate()} ${MONTH_PT[weekStart.getMonth()]} – ${end.getDate()} ${MONTH_PT[end.getMonth()]} ${end.getFullYear()}`
 
   const isColumns = variant === 'columns'
-  const sidePad   = isColumns ? '0 24px 24px' : '0 32px 120px'
+  const sidePad = isColumns ? '0 24px 24px' : '0 32px 120px'
 
   const weeklistKey = `weeklist-${isoDate(weekStart)}`
   const weeklistTasks = useMemo(() => tasks[weeklistKey] ?? [], [tasks, weeklistKey])
+
+  const isCurrentWeek = sameDay(weekStart, startOfWeek(TODAY, 1))
 
   const dayProps = {
     accent,
@@ -288,35 +290,35 @@ export function WeekView({
         <header style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 20, marginBottom: 0,
-          flexWrap: 'wrap',
+          flexWrap: 'nowrap',
         }}>
-          <div>
-            <div style={{
-              fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
-              textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 5,
-            }}>Semana</div>
-            {isColumns ? (
+          {/* Title Area */}
+          <div style={isColumns ? { flex: 1 } : { flex: 1, paddingRight: 320 }}>
+            <div style={isColumns ? {} : { width: '100%', maxWidth: 800, margin: '0 auto' }}>
+              <div style={{
+                fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+                textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 5,
+              }}>Semana</div>
               <h1 style={{
-                margin: 0, fontFamily: 'var(--font-display)',
-                fontSize: 32, fontWeight: 400, fontStyle: 'italic',
-                letterSpacing: '-0.02em', lineHeight: 1.1, color: 'var(--ink)',
+                margin: 0,
+                fontFamily: isColumns ? 'var(--font-display)' : 'inherit',
+                fontSize: isColumns ? 32 : 22,
+                fontWeight: isColumns ? 400 : 600,
+                fontStyle: isColumns ? 'italic' : 'normal',
+                letterSpacing: '-0.02em',
+                lineHeight: isColumns ? 1.1 : 1.2,
+                color: 'var(--ink)',
                 whiteSpace: 'nowrap',
               }}>
                 {rangeLabel}
               </h1>
-            ) : (
-              <h1 style={{
-                margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em',
-                color: 'var(--ink)', whiteSpace: 'nowrap',
-              }}>
-                {rangeLabel}
-              </h1>
-            )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Toggles Area */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <button className="ghost-btn" onClick={onPrevWeek} title="Semana anterior (←)">
-              <IconArrow dir="left"/>
+              <IconArrow dir="left" />
             </button>
             <button className="ghost-btn" onClick={onToday} style={{
               background: 'var(--bg-sunken)', fontWeight: 600, fontSize: 12,
@@ -324,25 +326,29 @@ export function WeekView({
               Hoje
             </button>
             <button className="ghost-btn" onClick={onNextWeek} title="Próxima semana (→)">
-              <IconArrow dir="right"/>
+              <IconArrow dir="right" />
             </button>
-            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }}/>
+            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
             <button className="ghost-btn" onClick={onToggleWeekend} style={{ fontSize: 11, fontWeight: 600 }}>
               {showWeekend ? 'Ocultar FDS' : 'Mostrar FDS'}
             </button>
             <button className="ghost-btn" onClick={onToggleDark} style={{ fontSize: 11, fontWeight: 600 }}>
               {dark ? 'Claro' : 'Escuro'}
             </button>
-            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }}/>
-            <ViewModeToggle variant={variant} onChange={onChangeVariant}/>
+            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+            <ViewModeToggle variant={variant} onChange={onChangeVariant} />
           </div>
         </header>
 
-        <OverdueBanner
-          tasks={overdueTasks}
-          onPullOne={onPullOneOverdue}
-          onPullAll={onPullAllOverdue}
-        />
+        {isCurrentWeek && (
+          <div style={isColumns ? {} : { width: '100%', maxWidth: 800, margin: '14px auto 0', paddingRight: 320 }}>
+            <OverdueBanner
+              tasks={overdueTasks}
+              onPullOne={onPullOneOverdue}
+              onPullAll={onPullAllOverdue}
+            />
+          </div>
+        )}
       </div>
 
       {/* Body */}
@@ -373,7 +379,13 @@ export function WeekView({
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: variant === 'quiet' ? 12 : 0 }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: variant === 'quiet' ? 12 : 0,
+              maxWidth: 800,
+              margin: '0 auto',
+            }}>
               {visibleDays.map(d => {
                 const key = isoDate(d)
                 return (
@@ -497,7 +509,7 @@ export function ListView({
   })
 
   return (
-    <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '36px 48px 120px', maxWidth: 720 }}>
+    <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '36px 48px 120px', maxWidth: 800, margin: '0 auto' }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{
           fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
@@ -531,7 +543,7 @@ export function ListView({
             <TaskRow key={t.id} task={t} accent={accent}
               showDragHandle
               onOpen={onOpenTask}
-              onChange={onUpdateTask} onDelete={onDeleteTask}/>
+              onChange={onUpdateTask} onDelete={onDeleteTask} />
           ))}
         </SortableContext>
         <InlineAdd onAdd={t => onAddTask(bucket, t)} placeholder="Adicionar tarefa" />

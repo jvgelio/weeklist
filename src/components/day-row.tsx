@@ -27,14 +27,14 @@ function DayRowComponent({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: DayRowProps) {
   const key = isoDate(date)
-  
+
   // Separate droppables for AM and PM
   const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
   const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
 
-  const dayIdx  = date.getDay()
+  const dayIdx = date.getDay()
   const dayName = DAY_NAMES_LONG_PT[dayIdx]
-  const dayNum  = date.getDate()
+  const dayNum = date.getDate()
 
   const amTasks = useMemo(() => tasks.filter((t) => t.slot !== 'pm'), [tasks])
   const pmTasks = useMemo(() => tasks.filter((t) => t.slot === 'pm'), [tasks])
@@ -80,7 +80,7 @@ function DayRowComponent({
             borderBottom: `1.5px solid ${accent}`, paddingBottom: 1,
           }}>hoje</span>
         )}
-        <span style={{ flex: 1 }}/>
+        <span style={{ flex: 1 }} />
         {total > 0 && (
           <span style={{
             fontSize: 10, fontWeight: 500, color: 'var(--ink-mute)',
@@ -92,42 +92,42 @@ function DayRowComponent({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div ref={setAmRef} style={{ 
-          background: isOverAm ? 'var(--accent-soft)' : 'transparent', 
+        <div ref={setAmRef} style={{
+          background: isOverAm ? 'var(--accent-soft)' : 'transparent',
           border: isOverAm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
-          borderRadius: 12, 
-          transition: 'all 120ms ease', 
+          borderRadius: 12,
+          transition: 'all 120ms ease',
           minHeight: 60,
           padding: isOverAm ? '4px' : 0,
         }}>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <IconSun size={8}/> manhã
+                <IconSun size={8} /> manhã
               </div>
-              {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
+              {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps} />)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
             </div>
           </SortableContext>
         </div>
 
-        <LunchDivider/>
+        <LunchDivider />
 
-        <div ref={setPmRef} style={{ 
-          background: isOverPm ? 'var(--accent-soft)' : 'transparent', 
+        <div ref={setPmRef} style={{
+          background: isOverPm ? 'var(--accent-soft)' : 'transparent',
           border: isOverPm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
-          borderRadius: 12, 
-          transition: 'all 120ms ease', 
+          borderRadius: 12,
+          transition: 'all 120ms ease',
           minHeight: 60,
           padding: isOverPm ? '4px' : 0,
         }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <IconMoon size={8}/> tarde
+                <IconMoon size={8} /> tarde
               </div>
-              {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
+              {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps} />)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
             </div>
           </SortableContext>
         </div>
@@ -159,14 +159,14 @@ function DayColumnComponent({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: DayColumnProps) {
   const key = isoDate(date)
-  
+
   // Separate droppables for AM and PM
   const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
   const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
 
-  const dayIdx   = date.getDay()
+  const dayIdx = date.getDay()
   const dayShort = DAY_NAMES_PT[dayIdx]
-  const dayNum   = date.getDate()
+  const dayNum = date.getDate()
 
   const amTasks = useMemo(() => tasks.filter((t) => t.slot !== 'pm'), [tasks])
   const pmTasks = useMemo(() => tasks.filter((t) => t.slot === 'pm'), [tasks])
@@ -225,7 +225,7 @@ function DayColumnComponent({
         }}>
           {String(dayNum).padStart(2, '0')}
         </span>
-        <span style={{ flex: 1 }}/>
+        <span style={{ flex: 1 }} />
         {total > 0 && (
           <span style={{
             fontSize: 9, fontWeight: 500,
@@ -244,34 +244,34 @@ function DayColumnComponent({
         overflowY: 'auto', minHeight: 100, gap: 4,
         background: 'transparent',
       }}>
-        <div ref={setAmRef} style={{ 
-          background: isOverAm ? 'var(--accent-soft)' : 'transparent', 
+        <div ref={setAmRef} style={{
+          background: isOverAm ? 'var(--accent-soft)' : 'transparent',
           border: isOverAm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
-          borderRadius: 12, 
-          transition: 'all 120ms ease', 
-          padding: '4px', 
+          borderRadius: 12,
+          transition: 'all 120ms ease',
+          padding: '4px',
           minHeight: 'calc(50% - 2px)', // Metade da coluna como padrão
-          flex: '0 0 auto', 
+          flex: '0 0 auto',
           display: 'flex', flexDirection: 'column',
         }}>
           <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--color-am) 70%, var(--ink-soft))', padding: '0 0 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <IconSun size={8}/> manhã
+            <IconSun size={8} /> manhã
           </div>
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
+            {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
           </SortableContext>
           <div style={{ flex: 1 }} /> {/* Espaçador para empurrar o add-row pro final, opcional */}
-          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
         </div>
 
         <div style={{ margin: '8px 4px', borderTop: '1px dotted var(--line-strong)', opacity: 0.4 }} />
 
-        <div ref={setPmRef} style={{ 
-          background: isOverPm ? 'var(--accent-soft)' : 'transparent', 
+        <div ref={setPmRef} style={{
+          background: isOverPm ? 'var(--accent-soft)' : 'transparent',
           border: isOverPm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
-          borderRadius: 12, 
-          transition: 'all 120ms ease', 
-          padding: '4px', 
+          borderRadius: 12,
+          transition: 'all 120ms ease',
+          padding: '4px',
           flex: '1 0 auto',
           display: 'flex', flexDirection: 'column',
         }}>
@@ -280,14 +280,14 @@ function DayColumnComponent({
             textTransform: 'uppercase', color: 'color-mix(in srgb, var(--color-pm) 70%, var(--ink-soft))',
             padding: '0 0 3px', display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            <IconMoon size={8}/> tarde
+            <IconMoon size={8} /> tarde
           </div>
 
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
+            {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
           </SortableContext>
           <div style={{ flex: 1 }} />
-          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
+          <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
         </div>
       </div>
     </section>
@@ -421,7 +421,7 @@ function WeekendDayCell({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask,
 }: WeekendDayCellProps) {
   const key = isoDate(date)
-  
+
   // Separate droppables for AM and PM
   const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
   const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
@@ -456,24 +456,24 @@ function WeekendDayCell({
           <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <IconSun size={8}/> manhã
+                <IconSun size={8} /> manhã
               </div>
-              {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa"/>
+              {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
             </div>
           </SortableContext>
         </div>
 
-        <LunchDivider/>
+        <LunchDivider />
 
         <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
           <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <IconMoon size={8}/> tarde
+                <IconMoon size={8} /> tarde
               </div>
-              {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps}/>)}
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa"/>
+              {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
             </div>
           </SortableContext>
         </div>
@@ -500,15 +500,15 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
   const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: false }
 
   return (
-    <div style={{ 
-      borderTop: '1px solid var(--line)', 
+    <div style={{
+      borderTop: '1px solid var(--line)',
       background: 'var(--bg-sunken)',
       transition: 'all 200ms ease',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-        <button 
-          onClick={() => setExpanded(e => !e)} 
-          className="ghost-btn" 
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="ghost-btn"
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '12px', fontSize: 13, fontWeight: 700, color: 'var(--ink-mute)', gap: 8,
@@ -525,8 +525,8 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
       </div>
 
       {expanded && (
-        <div 
-          ref={setNodeRef} 
+        <div
+          ref={setNodeRef}
           style={{
             padding: '0 24px 32px',
             background: isOver ? 'var(--accent-soft)' : 'transparent',
@@ -553,10 +553,10 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
                     key={t.id}
                     task={t}
                     {...taskProps}
-                    style={{ 
-                      background: 'var(--bg-raised)', 
-                      padding: '10px 12px', 
-                      borderRadius: 12, 
+                    style={{
+                      background: 'var(--bg-raised)',
+                      padding: '10px 12px',
+                      borderRadius: 12,
                       boxShadow: '0 2px 8px -2px rgba(0,0,0,0.05), var(--ring)',
                       border: '1px solid var(--line)',
                     }}
@@ -564,10 +564,10 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
                 ))}
               </SortableContext>
               <div style={{ display: 'flex', alignItems: 'flex-start', padding: '4px' }}>
-                <InlineAdd 
-                  compact 
-                  onAdd={title => onAddTask(bucketKey, title, 'am')} 
-                  placeholder="Adicionar tarefa" 
+                <InlineAdd
+                  compact
+                  onAdd={title => onAddTask(bucketKey, title, 'am')}
+                  placeholder="Adicionar tarefa"
                 />
               </div>
             </>
@@ -605,7 +605,7 @@ export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask,
           <span style={{ background: 'var(--line-strong)', padding: '1px 7px', borderRadius: 999, fontSize: 10, color: 'var(--ink)', fontWeight: 600 }}>{tasks.length}</span>
         </div>
         <button onClick={() => setExpanded(false)} className="ghost-btn" style={{ padding: '5px', color: 'var(--ink-mute)' }}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
         </button>
       </div>
       <div ref={setNodeRef} style={{
@@ -625,10 +625,10 @@ export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask,
                 key={t.id}
                 task={t}
                 {...taskProps}
-                style={{ 
-                  background: 'var(--bg-raised)', 
-                  padding: '10px 12px', 
-                  borderRadius: 12, 
+                style={{
+                  background: 'var(--bg-raised)',
+                  padding: '10px 12px',
+                  borderRadius: 12,
                   boxShadow: '0 2px 8px -2px rgba(0,0,0,0.05), var(--ring)',
                   border: '1px solid var(--line)',
                 }}
