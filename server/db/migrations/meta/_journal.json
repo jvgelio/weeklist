@@ -36,6 +36,13 @@
       "when": 1776736938719,
       "tag": "0004_tiny_post",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776756339165,
+      "tag": "0005_silent_blizzard",
+      "breakpoints": true
     }
   ]
 }

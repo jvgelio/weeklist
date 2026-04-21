@@ -10,6 +10,8 @@ export const users = pgTable('users', {
   slotAm:  boolean('slot_am').default(true).notNull(),
   slotPm:  boolean('slot_pm').default(true).notNull(),
   slotEve: boolean('slot_eve').default(false).notNull(),
+  darkMode:    boolean('dark_mode').default(false).notNull(),
+  showWeekend: boolean('show_weekend').default(true).notNull(),
 })
 
 export const sessions = pgTable('sessions', {
