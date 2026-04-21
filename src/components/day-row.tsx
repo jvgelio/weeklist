@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
-import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, sameDay } from '../lib/constants'
+import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, sameDay, isPastDay } from '../lib/constants'
 import type { Task, SlotPrefs } from '../lib/types'
 import { getDisplaySlot } from '../lib/slot-utils'
 import { TaskRow, InlineAdd, LunchDivider, IconSun, IconMoon, IconEvening, IconChevron } from './task-components'
@@ -65,6 +65,7 @@ function DayRowComponent({
   const flatTasks = useMemo(() => !slotPrefs.am && !slotPrefs.pm && !slotPrefs.eve ? tasks : [], [tasks, slotPrefs])
   const completed = useMemo(() => tasks.filter((t) => t.done).length, [tasks])
   const total = tasks.length
+  const isPast = useMemo(() => isPastDay(date), [date])
 
   const taskProps = {
     accent,
@@ -80,9 +81,10 @@ function DayRowComponent({
       style={{
         padding: '14px 16px',
         borderRadius: 14,
-        background: isToday ? 'var(--bg-raised)' : 'transparent',
+        background: isToday ? 'var(--bg-raised)' : (isPast ? 'var(--bg-sunken)' : 'transparent'),
+        opacity: isPast ? 0.8 : 1,
         boxShadow: isToday ? 'var(--ring)' : 'none',
-        transition: 'background 120ms ease, border 120ms ease',
+        transition: 'background 120ms ease, border 120ms ease, opacity 120ms ease',
       }}
     >
       {/* Day header */}
