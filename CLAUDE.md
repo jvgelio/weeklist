@@ -64,6 +64,8 @@ For multi-step tasks, state a brief plan:
 | ORM | Drizzle ORM |
 | Server state | TanStack Query v5 |
 | Drag-and-drop | @dnd-kit/core + @dnd-kit/sortable |
+| Auth | Google OAuth (sessions via cookie) |
+| Testes | Vitest 4.x |
 | Deploy | Railway |
 
 ## Estrutura de Diretórios
@@ -71,25 +73,37 @@ For multi-step tasks, state a brief plan:
 ```
 src/
   components/
-    app.tsx          # Raiz: DndContext, QueryClient, preferências
-    sidebar.tsx      # Sidebar com mini-calendário
-    views.tsx        # WeekView, ListView, ViewModeToggle
-    day-row.tsx      # DayRow, DayColumn, WeekendStrip, WeekendColumnsStrip
-    task-components.tsx  # Icon, TaskRow (useSortable), InlineAdd, Checkbox, etc.
-    task-editor.tsx  # Modal de edição de tarefa
+    app.tsx               # Raiz: DndContext, QueryClient, slotPrefs, auth gate
+    sidebar.tsx           # Sidebar com mini-calendário e nav de views
+    views.tsx             # WeekView, ListView, TagsView, ViewModeToggle
+    day-row.tsx           # DayRow, DayColumn, WeekendStrip, WeekendColumnsStrip
+    task-components.tsx   # Icon, TaskRow (useSortable), InlineAdd, Checkbox, etc.
+    task-editor.tsx       # Modal de edição de tarefa
+    settings-modal.tsx    # Modal de configurações (slots am/pm/eve)
+    login.tsx             # Tela de login (Google OAuth)
+    quick-add.tsx         # Componente de entrada rápida
+    highlighted-input.tsx # Input com highlight de NL tokens
   hooks/
-    use-tasks.ts     # useWeekTasks, useBucketTasks, useCreateTask, useMoveTask, etc.
+    use-tasks.ts   # useWeekTasks, useBucketTasks, useCreateTask, useMoveTask, useAuth, useUpdateSlotPrefs, etc.
+    use-tags.ts    # useUserTags, useCreateTag, useDeleteTag, etc.
   lib/
-    types.ts         # Task, Subtask, TaskMap, View, Variant, etc.
+    types.ts         # Task, Subtask, Tag, TaskMap, View, Variant, Slot, SlotPrefs, etc.
     api.ts           # fetch wrappers para /api/*
-    constants.ts     # TAGS, PRIORITY_COLORS, helpers de data
+    constants.ts     # PRIORITY_COLORS, helpers de data
     query-client.ts  # QueryClient singleton
+    slot-utils.ts    # firstEnabledSlot, migrateSlot, getDisplaySlot (lógica pura)
+    nl-parse.ts      # Parser de linguagem natural para inputs de tarefa
+    __tests__/
+      slot-utils.test.ts  # Testes unitários para slot-utils
 server/
-  index.ts           # Hono app: monta rotas + serve dist/
+  index.ts           # Hono app: monta rotas, auth middleware, serve dist/
   routes/
+    auth.ts          # GET /api/auth/me, /google, /callback, /logout
     tasks.ts         # GET /api/tasks, POST, PATCH /:id, PATCH /:id/move, DELETE /:id
+    tags.ts          # GET /api/tags, POST, PATCH /:id, DELETE /:id
+    settings.ts      # PATCH /api/settings/slots
   db/
-    schema.ts        # Drizzle schema: tasks + subtasks
+    schema.ts        # Drizzle schema: users, sessions, tags, tasks, subtasks
     client.ts        # Pool Postgres
     migrations/      # SQL gerado pelo drizzle-kit
 styles/
@@ -106,16 +120,21 @@ npm start            # Produção: Hono serve dist/ + API
 npm run db:generate  # drizzle-kit generate → gera SQL em server/db/migrations/
 npm run db:migrate   # drizzle-kit migrate  → aplica migrations no banco
 npm run db:studio    # drizzle-kit studio   → GUI do banco no browser
+
+npm test             # vitest run --reporter verbose
 ```
 
 ## Variáveis de Ambiente
 
 ```
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
-PORT=3000           # Usado pelo Hono em produção (Railway injeta automaticamente)
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+SESSION_SECRET=...          # segredo para assinar cookies de sessão
+PORT=3000                   # Usado pelo Hono em produção (Railway injeta automaticamente)
 ```
 
-Em dev, crie `.env` na raiz com `DATABASE_URL`.
+Em dev, crie `.env` na raiz.
 
 ## Deploy no Railway
 
@@ -128,10 +147,24 @@ Em dev, crie `.env` na raiz com `DATABASE_URL`.
 ## Convenções
 
 ### Tipos
-Todos os tipos de domínio ficam em `src/lib/types.ts`. Nunca redefina `Task`, `Subtask`, `TaskMap` em outros arquivos.
+Todos os tipos de domínio ficam em `src/lib/types.ts`. Nunca redefina `Task`, `Subtask`, `Tag`, `TaskMap` em outros arquivos. `SlotPrefs` vive em `slot-utils.ts` e é re-exportado por `types.ts`.
 
 ### API Routes
-Todas as rotas ficam em `server/routes/tasks.ts`. Novos recursos ganham novos arquivos em `server/routes/`.
+Cada recurso tem seu arquivo em `server/routes/`. Novos recursos ganham novos arquivos — não adicione rotas em `tasks.ts` para outros recursos.
+
+### Autenticação
+- `index.ts` registra middleware de auth para `/api/tasks/*`, `/api/tags/*`, `/api/settings/*`
+- O middleware chama `getAuthUser(c)` e faz `c.set('user', user)` — rotas protegidas usam `c.get('user')` diretamente (não precisam chamar `getAuthUser` de novo)
+- `getAuthUser` lê o cookie de sessão e retorna o `User` do DB ou `null`
+
+### Slot System
+- `Task.slot`: `'am' | 'pm' | 'eve' | null`
+- `SlotPrefs = { am: boolean; pm: boolean; eve: boolean }` — salvo como colunas `slot_am/slot_pm/slot_eve` na tabela `users`
+- `slot-utils.ts` — lógica pura, importável no server e no client
+  - `firstEnabledSlot(prefs)` — prioridade: am → pm → eve
+  - `migrateSlot(slot, prefs)` — move slot desabilitado para o primeiro habilitado
+  - `getDisplaySlot(slot, prefs)` — slot de exibição (tarefas órfãs caem no primeiro habilitado)
+- Ao alterar SlotPrefs via `PATCH /api/settings/slots`, o server migra tarefas de date-buckets em transação
 
 ### Mutations — sempre com optimistic update
 ```typescript
@@ -155,6 +188,7 @@ const mutation = useMutation({
 ### Drag-and-drop
 - `TaskRow` usa `useSortable({ id: task.id })` de `@dnd-kit/sortable`
 - Day containers usam `useDroppable({ id: bucketKey })` de `@dnd-kit/core`
+- Slot zones usam `useDroppable({ id: '${bucketKey}:am' | ':pm' | ':eve' })`
 - `DndContext` fica em `app.tsx` — um único contexto para cross-container drags
 - `handleDragEnd` distingue bucket keys (regex ISO date ou prefixo `__`) de task IDs
 
@@ -169,8 +203,9 @@ npm run db:migrate
 Nunca edite os arquivos `.sql` em `server/db/migrations/` manualmente.
 
 ### Cache shapes do TanStack Query
-- `useWeekTasks` → cache shape é `TaskMap` (devido ao `select: groupByBucket`)
-- `useBucketTasks` → cache shape é `Task[]`
+- `['auth', 'me']` → `{ user: User }` — dados do usuário autenticado (inclui `slotAm/slotPm/slotEve`)
+- `['tasks', 'week']` → `TaskMap` (devido ao `select: groupByBucket`)
+- `['tasks', bucketKey]` → `Task[]`
 - `useMoveTask.onMutate` atualiza **ambas** as shapes — não quebre essa lógica
 
 ## Bucket Keys
@@ -178,3 +213,11 @@ Nunca edite os arquivos `.sql` em `server/db/migrations/` manualmente.
 - `2026-04-18` → tarefa agendada para esta data
 - `__inbox` → inbox (sem data)
 - `__someday` → alguma hora (sem comprometimento)
+
+## DB Schema (tabelas principais)
+
+- `users` — id, googleId, email, name, avatarUrl, createdAt, slotAm, slotPm, slotEve
+- `sessions` — id, userId, expiresAt
+- `tags` — id (slug), userId, name, color
+- `tasks` — id, userId, title, done, bucketKey, slot, priority, recurring, tags (array), note, position, createdAt, updatedAt
+- `subtasks` — id, taskId, title, done, position
