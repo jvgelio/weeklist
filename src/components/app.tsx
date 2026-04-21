@@ -26,8 +26,10 @@ import {
   useMoveTask,
   useOverdueTasks,
   useAuth,
+  useUpdateDisplayPrefs,
   type ClientMutationTrace,
 } from '../hooks/use-tasks'
+import { useIsMobile } from '../hooks/use-mobile'
 import { Sidebar } from './sidebar'
 import { WeekView, ListView, TagsView } from './views'
 import { TaskEditor } from './task-editor'
@@ -88,6 +90,8 @@ function toUpdatePayload(current: Task, next: Task): MutableTaskPatch {
 
 export default function App() {
   const { data: authData, isLoading: authLoading } = useAuth()
+  const isMobile = useIsMobile()
+  const updateDisplayPrefs = useUpdateDisplayPrefs()
 
   const slotPrefs: SlotPrefs = {
     am:  authData?.user?.slotAm  ?? true,
@@ -116,10 +120,17 @@ export default function App() {
   const pendingTextPatchRef = useRef<Map<string, TextPatch>>(new Map())
 
   // Preferences persistence
-  useEffect(() => { localStorage.setItem('wl_weekend', showWeekend ? '1' : '0') }, [showWeekend])
-  useEffect(() => { localStorage.setItem('wl_dark', dark ? '1' : '0') }, [dark])
   useEffect(() => { localStorage.setItem('wl_variant', variant) }, [variant])
   useEffect(() => { localStorage.setItem('wl_sidebar_collapsed', collapsed ? '1' : '0') }, [collapsed])
+
+  // Sync dark/weekend from server once auth loads (keyed on user id so it runs once per login)
+  useEffect(() => {
+    if (!authData?.user) return
+    setDark(authData.user.darkMode)
+    setShowWeekend(authData.user.showWeekend)
+    localStorage.setItem('wl_dark', authData.user.darkMode ? '1' : '0')
+    localStorage.setItem('wl_weekend', authData.user.showWeekend ? '1' : '0')
+  }, [authData?.user?.id])
 
   // Theme
   useEffect(() => {
@@ -129,6 +140,7 @@ export default function App() {
   // Accent CSS vars
   useEffect(() => { applyAccentCSS(variant) }, [variant])
   const accent = accentForVariant(variant)
+  const effectiveVariant: Variant = isMobile ? 'quiet' : variant
 
   // Cleanup text timers
   useEffect(() => {
@@ -140,6 +152,24 @@ export default function App() {
       pendingTextPatchRef.current.clear()
     }
   }, [])
+
+  const handleToggleDark = useCallback(() => {
+    setDark((d) => {
+      const next = !d
+      updateDisplayPrefs.mutate({ darkMode: next })
+      localStorage.setItem('wl_dark', next ? '1' : '0')
+      return next
+    })
+  }, [updateDisplayPrefs])
+
+  const handleToggleWeekend = useCallback(() => {
+    setShowWeekend((s) => {
+      const next = !s
+      updateDisplayPrefs.mutate({ showWeekend: next })
+      localStorage.setItem('wl_weekend', next ? '1' : '0')
+      return next
+    })
+  }, [updateDisplayPrefs])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -157,11 +187,11 @@ export default function App() {
       if (e.key === 'ArrowLeft' || e.key === 'h') { setWeekStart((w) => addDays(w, -7)); e.preventDefault() }
       if (e.key === 'ArrowRight' || e.key === 'l') { setWeekStart((w) => addDays(w, 7)); e.preventDefault() }
       if (e.key === 't' || e.key === 'T') { setWeekStart(startOfWeek(TODAY, 1)); e.preventDefault() }
-      if (e.key === 'w' || e.key === 'W') { setShowWeekend((s) => !s); e.preventDefault() }
+      if (e.key === 'w' || e.key === 'W') { handleToggleWeekend(); e.preventDefault() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [view])
+  }, [view, handleToggleWeekend])
 
   // Data queries
   const isAuth = !!authData?.user
@@ -545,12 +575,12 @@ export default function App() {
             <WeekView
               weekStart={weekStart}
               tasks={weekTasks}
-              variant={variant}
+              variant={effectiveVariant}
               showWeekend={showWeekend}
               dark={dark}
-              onChangeVariant={setVariant}
-              onToggleWeekend={() => setShowWeekend((s) => !s)}
-              onToggleDark={() => setDark((d) => !d)}
+              onChangeVariant={(v) => { setVariant(v); localStorage.setItem('wl_variant', v) }}
+              onToggleWeekend={handleToggleWeekend}
+              onToggleDark={handleToggleDark}
               onPrevWeek={() => setWeekStart((w) => addDays(w, -7))}
               onNextWeek={() => setWeekStart((w) => addDays(w, 7))}
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
@@ -633,6 +663,10 @@ export default function App() {
           open={showSettings}
           onClose={() => setShowSettings(false)}
           slotPrefs={slotPrefs}
+          dark={dark}
+          showWeekend={showWeekend}
+          onToggleDark={handleToggleDark}
+          onToggleWeekend={handleToggleWeekend}
         />
       )}
     </DndContext>
