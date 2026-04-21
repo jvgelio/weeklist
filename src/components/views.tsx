@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { MONTH_PT, DAY_NAMES_PT, PRESET_COLORS, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
@@ -51,6 +52,16 @@ export function ViewModeToggle({ variant, onChange }: ViewModeToggleProps) {
 }
 
 // ---- WeekView ----
+
+const layoutVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { 
+      staggerChildren: 0.1 // Stagger columns
+    }
+  }
+}
 
 function formatOverdueDate(bucketKey: string): string {
   const d = new Date(bucketKey + 'T00:00:00')
@@ -287,7 +298,12 @@ export function WeekView({
   }
 
   return (
-    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={layoutVariants}
+      style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+    >
       {/* Header */}
       <div style={{
         padding: isMobile ? '64px 16px 12px' : (isColumns ? '24px 24px 16px' : '24px 32px 16px'),
@@ -423,7 +439,7 @@ export function WeekView({
       {isColumns && (
         <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
       )}
-    </div>
+    </motion.div>
   )
 }
 
