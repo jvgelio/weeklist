@@ -115,6 +115,7 @@ export default function App() {
   const [draggingTask, setDraggingTask] = useState<Task | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const textTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const pendingTextPatchRef = useRef<Map<string, TextPatch>>(new Map())
@@ -559,17 +560,41 @@ export default function App() {
     >
       <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
         <Sidebar
-          view={view} onViewChange={setView}
-          activeWeekStart={weekStart} onWeekSelect={setWeekStart}
+          view={view} onViewChange={(v) => { setView(v); if (isMobile) setSidebarOpen(false) }}
+          activeWeekStart={weekStart} onWeekSelect={(d) => { setWeekStart(d); if (isMobile) setSidebarOpen(false) }}
           taskMap={sidebarMap}
           showWeekend={showWeekend}
           accent={accent}
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((v) => !v)}
           user={authData?.user ?? null}
-          onOpenSettings={() => setShowSettings(true)}
+          onOpenSettings={() => { setShowSettings(true); if (isMobile) setSidebarOpen(false) }}
+          isMobile={isMobile}
+          mobileOpen={sidebarOpen}
+          onMobileClose={() => setSidebarOpen(false)}
         />
 
+        {isMobile && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="ghost-btn"
+            style={{
+              position: 'fixed',
+              top: 12, left: 12, zIndex: 100,
+              padding: '8px', borderRadius: 10,
+              background: 'var(--bg-raised)',
+              boxShadow: 'var(--ring)',
+              minWidth: 40, minHeight: 40,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            title="Menu"
+            aria-label="Abrir menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {view === 'week' && (
             <WeekView

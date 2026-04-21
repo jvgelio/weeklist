@@ -206,6 +206,9 @@ export interface SidebarProps {
   onToggleCollapsed: () => void
   user: { name: string, email: string, avatarUrl: string } | null
   onOpenSettings: () => void
+  isMobile?: boolean
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 export function Sidebar({
@@ -216,7 +219,11 @@ export function Sidebar({
   collapsed, onToggleCollapsed,
   user,
   onOpenSettings,
+  isMobile = false,
+  mobileOpen = false,
+  onMobileClose,
 }: SidebarProps) {
+  const isCollapsed = isMobile ? false : collapsed
   const today = new Date()
   const currentMonday = startOfWeek(today, 1)
 
@@ -240,24 +247,43 @@ export function Sidebar({
   const inboxCount   = taskMap.__inbox?.length || 0
 
   return (
+    <>
+    {isMobile && mobileOpen && (
+      <div
+        onClick={onMobileClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.4)',
+          zIndex: 199,
+        }}
+      />
+    )}
     <aside style={{
-      width: collapsed ? 54 : 260, flexShrink: 0,
+      width: isMobile ? 280 : (isCollapsed ? 54 : 260),
+      flexShrink: 0,
       background: 'var(--bg-sunken)',
       borderRight: '1px solid var(--line)',
       display: 'flex', flexDirection: 'column',
       height: '100vh',
-      transition: 'width 200ms ease',
+      transition: isMobile ? 'transform 250ms ease' : 'width 200ms ease',
       overflow: 'hidden',
+      ...(isMobile && {
+        position: 'fixed' as const,
+        left: 0, top: 0, bottom: 0,
+        zIndex: 200,
+        transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+        boxShadow: mobileOpen ? '4px 0 24px rgba(0,0,0,0.18)' : 'none',
+      }),
     }}>
       {/* Brand + collapse toggle */}
       <div style={{
         padding: '16px 14px 14px',
         display: 'flex', alignItems: 'center', gap: 8,
         borderBottom: '1px solid var(--line)',
-        justifyContent: collapsed ? 'center' : 'space-between',
+        justifyContent: isCollapsed ? 'center' : 'space-between',
         flexShrink: 0,
       }}>
-        {!collapsed && (
+        {!isCollapsed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             <span style={{
               width: 22, height: 22, borderRadius: 6,
@@ -272,27 +298,29 @@ export function Sidebar({
             }}>weeklist</span>
           </div>
         )}
-        <button
-          onClick={onToggleCollapsed}
-          className="ghost-btn"
-          title={collapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-          style={{ padding: '6px 7px', color: 'var(--ink-mute)', flexShrink: 0 }}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
-            style={{ transform: `rotate(${collapsed ? 180 : 0}deg)`, transition: 'transform 200ms ease' }}>
-            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        {!isMobile && (
+          <button
+            onClick={onToggleCollapsed}
+            className="ghost-btn"
+            title={isCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+            style={{ padding: '6px 7px', color: 'var(--ink-mute)', flexShrink: 0 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+              style={{ transform: `rotate(${isCollapsed ? 180 : 0}deg)`, transition: 'transform 200ms ease' }}>
+              <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* View navigation */}
-      <div style={{ padding: collapsed ? '10px 6px' : '10px 10px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+      <div style={{ padding: isCollapsed ? '10px 6px' : '10px 10px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
         <ViewButton
-          collapsed={collapsed} icon={<IconWeek />} label="Semana"
+          collapsed={isCollapsed} icon={<IconWeek />} label="Semana"
           active={view === 'week'} onClick={() => onViewChange('week')} accent={accent}
         />
         <DroppableInboxButton
-          collapsed={collapsed}
+          collapsed={isCollapsed}
           count={inboxCount}
           active={view === 'inbox'}
           onClick={() => onViewChange('inbox')}
@@ -300,15 +328,15 @@ export function Sidebar({
           view={view}
         />
         <ViewButton
-          collapsed={collapsed} icon={<IconHash />} label="Tags"
+          collapsed={isCollapsed} icon={<IconHash />} label="Tags"
           active={view === 'tags'} onClick={() => onViewChange('tags')} accent={accent}
         />
       </div>
 
-      {collapsed && <div style={{ flex: 1 }} />}
+      {isCollapsed && <div style={{ flex: 1 }} />}
 
       {/* Mini week strips — header */}
-      {!collapsed && (
+      {!isCollapsed && (
         <div style={{
           padding: '4px 10px 6px',
           borderTop: '1px solid var(--line)',
@@ -323,7 +351,7 @@ export function Sidebar({
       )}
 
       {/* Mini week strips — list */}
-      {!collapsed && (
+      {!isCollapsed && (
         <div style={{
           flex: 1, overflowY: 'auto',
           padding: '0 10px 10px',
@@ -345,14 +373,14 @@ export function Sidebar({
 
       {/* Footer (Settings & User) */}
       <div style={{
-        marginTop: collapsed ? 'auto' : 0,
+        marginTop: isCollapsed ? 'auto' : 0,
         borderTop: '1px solid var(--line)',
-        padding: collapsed ? '10px 6px' : '10px 10px',
+        padding: isCollapsed ? '10px 6px' : '10px 10px',
         display: 'flex', flexDirection: 'column', gap: 2,
         flexShrink: 0,
       }}>
         <ViewButton
-          collapsed={collapsed}
+          collapsed={isCollapsed}
           icon={<Settings size={14} />}
           label="Settings"
           active={false}
@@ -362,12 +390,12 @@ export function Sidebar({
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: collapsed ? '10px 0' : '8px 12px',
+          padding: isCollapsed ? '10px 0' : '8px 12px',
           marginTop: 6,
           borderRadius: 10,
           cursor: 'pointer',
           transition: 'background 120ms ease',
-          justifyContent: collapsed ? 'center' : 'space-between',
+          justifyContent: isCollapsed ? 'center' : 'space-between',
         }}
         onMouseEnter={e => e.currentTarget.style.background = 'var(--line)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -385,17 +413,18 @@ export function Sidebar({
             ) : (
               <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--line)', flexShrink: 0 }} />
             )}
-            {!collapsed && (
+            {!isCollapsed && (
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name || 'Usuário'}
               </span>
             )}
           </div>
-          {!collapsed && (
+          {!isCollapsed && (
             <MoreVertical size={14} color="var(--ink-mute)" style={{ flexShrink: 0 }} />
           )}
         </div>
       </div>
     </aside>
+    </>
   )
 }
