@@ -1,18 +1,25 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import type { NLToken, TokenKind } from '../lib/nl-parse'
 import { PRIORITY_COLORS } from '../lib/constants'
+
+type HighlightedInputElement = HTMLInputElement | HTMLTextAreaElement
 
 interface HighlightedInputProps {
   value:           string
   tokens:          NLToken[]
   onChange:        (val: string) => void
-  onKeyDown?:      (e: React.KeyboardEvent<HTMLInputElement>) => void
-  onBlur?:         () => void
+  onKeyDown?:      (e: React.KeyboardEvent<HighlightedInputElement>) => void
+  onBlur?:         (e: React.FocusEvent<HighlightedInputElement>) => void
+  onFocus?:        (e: React.FocusEvent<HighlightedInputElement>) => void
   placeholder?:    string
-  inputRef?:       React.RefObject<HTMLInputElement>
+  inputRef?:       React.MutableRefObject<HighlightedInputElement | null>
   inputClassName?: string
   inputStyle?:     React.CSSProperties
   autoFocus?:      boolean
+  multiline?:      boolean
+  rows?:           number
+  autoGrow?:       boolean
+  maxHeight?:      number
 }
 
 const BASE_TOKEN_BG: Record<TokenKind, string> = {
@@ -54,18 +61,34 @@ export function HighlightedInput({
   onChange,
   onKeyDown,
   onBlur,
+  onFocus,
   placeholder,
   inputRef: externalRef,
   inputClassName,
   inputStyle,
   autoFocus,
+  multiline = false,
+  rows = 1,
+  autoGrow = false,
+  maxHeight = 240,
   maxLength,
 }: HighlightedInputProps & { maxLength?: number }) {
   const mirrorRef = useRef<HTMLDivElement>(null)
-  const internalRef = useRef<HTMLInputElement>(null)
+  const internalRef = useRef<HighlightedInputElement | null>(null)
   const inputEl = externalRef ?? internalRef
 
-  const segments = buildSegments(value, tokens)
+  const segments = useMemo(() => buildSegments(value, tokens), [value, tokens])
+
+  useEffect(() => {
+    if (!multiline || !autoGrow) return
+
+    const el = inputEl.current
+    if (!(el instanceof HTMLTextAreaElement)) return
+
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [autoGrow, inputEl, maxHeight, multiline, value])
 
   const sharedStyle: React.CSSProperties = {
     fontFamily:    'inherit',
@@ -73,32 +96,40 @@ export function HighlightedInput({
     fontWeight:    'inherit',
     lineHeight:    'inherit',
     letterSpacing: 'inherit',
-    whiteSpace:    'pre',
+    whiteSpace:    multiline ? 'pre-wrap' : 'pre',
     wordBreak:     'break-word',
+    overflowWrap:  'anywhere',
     ...(inputStyle ?? {}),
   }
 
-  function handleScroll(e: React.UIEvent<HTMLInputElement>) {
+  function handleScroll(e: React.UIEvent<HighlightedInputElement>) {
     if (mirrorRef.current) {
       mirrorRef.current.scrollLeft = e.currentTarget.scrollLeft
+      mirrorRef.current.scrollTop = e.currentTarget.scrollTop
     }
+  }
+
+  const mirrorFiller = multiline ? '\n' : ' '
+  const assignRef = (node: HighlightedInputElement | null) => {
+    inputEl.current = node
   }
 
   return (
     <div style={{ position: 'relative', display: 'block' }}>
-      {/* Mirror div — visual highlights only */}
       <div
         ref={mirrorRef}
         aria-hidden
         style={{
           ...sharedStyle,
-          position:      'absolute',
-          inset:         0,
-          pointerEvents: 'none',
-          overflow:      'hidden',
-          color:         'transparent',
-          zIndex:        0,
-          userSelect:    'none',
+          position:       'absolute',
+          inset:          0,
+          pointerEvents:  'none',
+          overflow:       multiline ? 'auto' : 'hidden',
+          color:          'transparent',
+          zIndex:         0,
+          userSelect:     'none',
+          scrollbarWidth: 'none',
+          msOverflowStyle:'none',
         }}
       >
         {segments.map((seg, i) =>
@@ -119,31 +150,56 @@ export function HighlightedInput({
             <span key={i}>{seg.text}</span>
           )
         )}
-        {/* Trailing space prevents last-char highlight clipping */}
-        {' '}
+        {mirrorFiller}
       </div>
 
-      {/* Real input on top */}
-      <input
-        ref={inputEl}
-        className={inputClassName}
-        value={value}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        maxLength={maxLength}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        onBlur={onBlur}
-        onScroll={handleScroll}
-        style={{
-          ...sharedStyle,
-          position:   'relative',
-          zIndex:     1,
-          background: 'transparent',
-          caretColor: 'var(--ink)',
-          width:      '100%',
-        }}
-      />
+      {multiline ? (
+        <textarea
+          ref={assignRef}
+          className={inputClassName}
+          value={value}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          maxLength={maxLength}
+          rows={rows}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={onBlur}
+          onFocus={onFocus}
+          onScroll={handleScroll}
+          style={{
+            ...sharedStyle,
+            position:   'relative',
+            zIndex:     1,
+            background: 'transparent',
+            caretColor: 'var(--ink)',
+            width:      '100%',
+            resize:     'none',
+          }}
+        />
+      ) : (
+        <input
+          ref={assignRef}
+          className={inputClassName}
+          value={value}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          maxLength={maxLength}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={onBlur}
+          onFocus={onFocus}
+          onScroll={handleScroll}
+          style={{
+            ...sharedStyle,
+            position:   'relative',
+            zIndex:     1,
+            background: 'transparent',
+            caretColor: 'var(--ink)',
+            width:      '100%',
+          }}
+        />
+      )}
     </div>
   )
 }
