@@ -341,8 +341,8 @@ function DayColumnComponent({
             </div>
           )}
 
-          {slotPrefs.am && slotPrefs.pm && <div style={{ margin: '8px 4px', borderTop: '1px dotted var(--line-strong)', opacity: 0.4 }} />}
-          {slotPrefs.am && !slotPrefs.pm && slotPrefs.eve && <div style={{ margin: '8px 4px', borderTop: '1px dotted var(--line-strong)', opacity: 0.4 }} />}
+          {slotPrefs.am && slotPrefs.pm && <div style={{ margin: '8px 4px', borderTop: '1.2px dashed var(--line-strong)', opacity: 0.6 }} />}
+          {slotPrefs.am && !slotPrefs.pm && slotPrefs.eve && <div style={{ margin: '8px 4px', borderTop: '1.2px dashed var(--line-strong)', opacity: 0.6 }} />}
 
           {slotPrefs.pm && (
             <div ref={setPmRef} style={{
@@ -368,7 +368,7 @@ function DayColumnComponent({
             </div>
           )}
 
-          {(slotPrefs.pm || slotPrefs.am) && slotPrefs.eve && <div style={{ margin: '8px 4px', borderTop: '1px dotted var(--line-strong)', opacity: 0.4 }} />}
+          {(slotPrefs.pm || slotPrefs.am) && slotPrefs.eve && <div style={{ margin: '8px 4px', borderTop: '1.2px dashed var(--line-strong)', opacity: 0.6 }} />}
 
           {slotPrefs.eve && (
             <div ref={setEveRef} style={{

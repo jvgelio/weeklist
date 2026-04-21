@@ -363,7 +363,7 @@ function TaskRowComponent({
           />
         ) : (
           <div style={{
-            fontSize: 14, fontWeight: 500,
+            fontSize: 13, fontWeight: 500,
             color: task.done ? 'var(--ink-mute)' : 'var(--ink)',
             textDecoration: task.done ? 'line-through' : 'none',
             wordBreak: 'break-word',
@@ -411,11 +411,6 @@ function TaskRowComponent({
       </div>
 
       <div className="row-actions" style={{ display: 'flex', gap: 4 }}>
-        {onOpen && (
-          <button onClick={(e) => { e.stopPropagation(); onOpen(task) }} className="ghost-btn" style={{ padding: '4px 8px' }}>
-            <IconChevron size={14}/>
-          </button>
-        )}
       </div>
     </motion.div>
   )
@@ -497,7 +492,7 @@ export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact,
     borderRadius: 8,
     border: '1.5px solid var(--accent)',
     background: 'var(--bg)',
-    fontSize: 14,
+    fontSize: 13,
     color: 'var(--ink)',
     outline: 'none',
   }
@@ -548,11 +543,11 @@ export function LunchDivider() {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10, margin: '8px 4px',
-      opacity: 0.5,
+      opacity: 0.7,
     }}>
-      <div style={{ flex: 1, height: 1, background: 'var(--line)' }}/>
+      <div style={{ flex: 1, borderTop: '1.2px dashed var(--line-strong)' }}/>
       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>almoço</span>
-      <div style={{ flex: 1, height: 1, background: 'var(--line)' }}/>
+      <div style={{ flex: 1, borderTop: '1.2px dashed var(--line-strong)' }}/>
     </div>
   )
 }
