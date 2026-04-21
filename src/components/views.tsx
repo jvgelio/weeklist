@@ -27,8 +27,8 @@ function DayNavBar({ days, showWeekend, accent }: DayNavBarProps) {
   
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 16,
-      borderBottom: '1px solid var(--line)', paddingBottom: 12, marginBottom: 24,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: 16,
+      borderBottom: '1px solid var(--line)', paddingBottom: 12, marginBottom: 32,
       overflowX: 'auto', scrollbarWidth: 'none',
       position: 'sticky', top: 0, zIndex: 10,
       background: 'var(--bg)', paddingTop: 12,
@@ -486,6 +486,7 @@ export function WeekView({
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             {renderHeader()}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }} id="list-scroll-container">
+              <DayNavBar days={days} showWeekend={showWeekend} accent={accent} />
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -493,7 +494,6 @@ export function WeekView({
                 maxWidth: 800,
                 margin: '0 auto',
               }}>
-                <DayNavBar days={days} showWeekend={showWeekend} accent={accent} />
                 
                 {visibleDays.map(d => {
                   const key = isoDate(d)
