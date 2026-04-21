@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
-import { sql, eq, and, gte, lte, gt, lt, inArray } from 'drizzle-orm'
+import { sql, eq, and, gte, lte, gt, lt, inArray, or, isNotNull } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { db } from '../db/client.js'
 import { tasks, subtasks } from '../db/schema.js'
+import { addDays, isoDate } from '../../src/lib/constants.js'
 
 export const tasksRouter = new Hono()
 
@@ -40,6 +41,72 @@ async function getTasksWithSubtasks(taskList: typeof tasks.$inferSelect[]) {
   }))
 }
 
+function projectRecurringTasks(
+  templates: typeof tasks.$inferSelect[],
+  from: string,
+  to: string
+): typeof tasks.$inferSelect[] {
+  const projected: typeof tasks.$inferSelect[] = []
+  const fromDate = new Date(from + 'T00:00:00')
+  const toDate = new Date(to + 'T00:00:00')
+
+  for (const task of templates) {
+    if (!task.recurring) continue
+    const taskDate = new Date(task.bucketKey + 'T00:00:00')
+    if (taskDate > toDate) continue
+
+    let current = taskDate
+    if (task.recurring === 'daily') {
+      if (current < fromDate) current = fromDate
+    } else if (task.recurring === 'weekly') {
+      while (current < fromDate) current = addDays(current, 7)
+    } else if (task.recurring === 'monthly') {
+      while (current < fromDate) {
+        const next = new Date(current)
+        next.setMonth(next.getMonth() + 1)
+        current = next
+      }
+    }
+
+    while (current <= toDate) {
+      const currentIso = isoDate(current)
+      if (currentIso !== task.bucketKey && currentIso >= from && currentIso <= to) {
+        projected.push({
+          ...task,
+          id: `${task.id}:${currentIso}`,
+          bucketKey: currentIso,
+          done: false, // Projected tasks are initially not done
+        })
+      }
+
+      if (task.recurring === 'daily') current = addDays(current, 1)
+      else if (task.recurring === 'weekly') current = addDays(current, 7)
+      else if (task.recurring === 'monthly') {
+        const next = new Date(current)
+        next.setMonth(next.getMonth() + 1)
+        current = next
+      } else break
+    }
+  }
+  return projected
+}
+
+function calculateNextOccurrence(currentIso: string, recurring: string): string | null {
+  const d = new Date(currentIso + 'T00:00:00')
+  if (recurring === 'daily') {
+    return isoDate(addDays(d, 1))
+  }
+  if (recurring === 'weekly') {
+    return isoDate(addDays(d, 7))
+  }
+  if (recurring === 'monthly') {
+    const next = new Date(d)
+    next.setMonth(next.getMonth() + 1)
+    return isoDate(next)
+  }
+  return null
+}
+
 // GET /api/tasks
 tasksRouter.get('/', async (c) => {
   const user = c.get('user')
@@ -75,7 +142,7 @@ tasksRouter.get('/', async (c) => {
   }
 
   if (from && to) {
-    const [datedTasks, weeklistTasks] = await Promise.all([
+    const [datedTasks, recurringTemplates, weeklistTasks] = await Promise.all([
       db.select().from(tasks)
         .where(and(
           eq(tasks.userId, user.id),
@@ -86,12 +153,23 @@ tasksRouter.get('/', async (c) => {
       db.select().from(tasks)
         .where(and(
           eq(tasks.userId, user.id),
+          isNotNull(tasks.recurring),
+          lt(tasks.bucketKey, from),
+        )),
+      db.select().from(tasks)
+        .where(and(
+          eq(tasks.userId, user.id),
           eq(tasks.bucketKey, `weeklist-${from}`)
         ))
         .orderBy(tasks.position),
     ])
 
-    taskList = [...datedTasks, ...weeklistTasks]
+    const projected = projectRecurringTasks(recurringTemplates, from, to)
+    // Filter out projected tasks that already have a real counterpart (matching by title)
+    const filteredProjected = projected.filter(p => 
+      !datedTasks.some(d => d.title === p.title && d.bucketKey === p.bucketKey)
+    )
+    taskList = [...datedTasks, ...filteredProjected, ...weeklistTasks]
   } else if (bucket) {
     taskList = await db.select().from(tasks)
       .where(and(
@@ -109,6 +187,36 @@ tasksRouter.get('/', async (c) => {
 
   const result = await getTasksWithSubtasks(taskList)
   return c.json(result)
+})
+
+// GET /api/tasks/occupancy
+tasksRouter.get('/occupancy', async (c) => {
+  const user = c.get('user')
+  const from = c.req.query('from')
+  const to = c.req.query('to')
+
+  if (!from || !to) {
+    return c.json({ error: 'from and to are required' }, 400)
+  }
+
+  const results = await db.select({
+    bucketKey: tasks.bucketKey,
+    count: sql<number>`count(*)`,
+  })
+    .from(tasks)
+    .where(and(
+      eq(tasks.userId, user.id),
+      gte(tasks.bucketKey, from),
+      lte(tasks.bucketKey, to),
+    ))
+    .groupBy(tasks.bucketKey)
+
+  const occupancyMap: Record<string, number> = {}
+  for (const row of results) {
+    occupancyMap[row.bucketKey] = Number(row.count)
+  }
+
+  return c.json(occupancyMap)
 })
 
 // GET /api/tasks/:id
@@ -131,6 +239,7 @@ tasksRouter.post('/', async (c) => {
     slot?: string
     position: number
     priority?: string | null
+    recurring?: string | null
     tags?: string[]
   }>()
 
@@ -152,6 +261,7 @@ tasksRouter.post('/', async (c) => {
     slot: body.slot ?? null,
     position: body.position,
     priority: body.priority ?? null,
+    recurring: body.recurring ?? null,
     tags: body.tags ?? [],
     createdAt: now,
     updatedAt: now,
@@ -164,13 +274,7 @@ tasksRouter.post('/', async (c) => {
 // PATCH /api/tasks/:id
 tasksRouter.patch('/:id', async (c) => {
   const user = c.get('user')
-  const id = c.req.param('id')
-
-  const existing = await getTaskWithSubtasks(id, user.id)
-  if (!existing) {
-    return c.json({ error: 'Task not found' }, 404)
-  }
-
+  let id = c.req.param('id')
   const body = await c.req.json<{
     title?: string
     done?: boolean
@@ -180,6 +284,71 @@ tasksRouter.patch('/:id', async (c) => {
     tags?: string[]
     note?: string | null
   }>()
+
+  let existing = await getTaskWithSubtasks(id, user.id)
+  
+  // Handle virtual IDs (templateId:date)
+  if (!existing && id.includes(':')) {
+    const [templateId, date] = id.split(':')
+    const template = await getTaskWithSubtasks(templateId, user.id)
+    if (template) {
+      // Materialize virtual task as a real one-off task
+      const newId = randomUUID()
+      const now = new Date()
+      await db.insert(tasks).values({
+        id: newId,
+        userId: user.id,
+        title: body.title ?? template.title,
+        done: body.done ?? false,
+        bucketKey: date,
+        slot: body.slot !== undefined ? body.slot : template.slot,
+        position: template.position,
+        priority: body.priority !== undefined ? body.priority : template.priority,
+        recurring: null, // One-off instance
+        tags: body.tags ?? template.tags,
+        note: body.note !== undefined ? body.note : template.note,
+        createdAt: now,
+        updatedAt: now,
+      })
+      
+      const created = await getTaskWithSubtasks(newId, user.id)
+      return c.json(created)
+    }
+  }
+
+  if (!existing) {
+    return c.json({ error: 'Task not found' }, 404)
+  }
+
+  // If it's a real recurring task and it's being marked DONE, 
+  // we might want to move it forward instead of just marking it done.
+  // But to keep history, we'll follow the "materialize" pattern:
+  // 1. Create a done clone for today.
+  // 2. Move template to next occurrence.
+  if (existing.recurring && body.done === true && !existing.done) {
+    const nextDate = calculateNextOccurrence(existing.bucketKey, existing.recurring)
+    if (nextDate) {
+      // 1. Create completed clone
+      const cloneId = randomUUID()
+      const now = new Date()
+      await db.insert(tasks).values({
+        ...existing,
+        id: cloneId,
+        recurring: null,
+        done: true,
+        updatedAt: now,
+      })
+      // 2. Move template forward
+      await db.update(tasks).set({
+        bucketKey: nextDate,
+        done: false,
+        updatedAt: now,
+      }).where(eq(tasks.id, existing.id))
+
+      const updatedTemplate = await getTaskWithSubtasks(existing.id, user.id)
+      return c.json(updatedTemplate)
+    }
+  }
 
   const allowed: Partial<typeof tasks.$inferInsert> = {}
   if (body.title !== undefined) {
