@@ -379,7 +379,7 @@ export function WeekView({
 
       {/* Body */}
       {isColumns ? (
-        <div style={{ flex: 1, minHeight: 0, padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <motion.div style={{ flex: 1, minHeight: 0, padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <motion.div style={{ flex: 1, display: 'flex', gap: 10, minHeight: 0 }}>
             {visibleDays.map(d => {
               const key = isoDate(d)
@@ -401,10 +401,10 @@ export function WeekView({
               {...dayProps}
             />
           )}
-        </div>
+        </motion.div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
+        <motion.div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <motion.div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
             <motion.div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -432,9 +432,9 @@ export function WeekView({
                 {...dayProps}
               />
             )}
-          </div>
+          </motion.div>
           <WeeklistPanel bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
-        </div>
+        </motion.div>
       )}
       {isColumns && (
         <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />

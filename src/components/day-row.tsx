@@ -2,10 +2,18 @@ import React, { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
-import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, isoDate, sameDay } from '../lib/constants'
+import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, sameDay } from '../lib/constants'
 import type { Task, SlotPrefs } from '../lib/types'
 import { getDisplaySlot } from '../lib/slot-utils'
 import { TaskRow, InlineAdd, LunchDivider, IconSun, IconMoon, IconEvening, IconChevron } from './task-components'
+
+// Helper
+function isoDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
 
 const columnVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -109,7 +117,7 @@ function DayRowComponent({
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <motion.div style={{ display: 'flex', flexDirection: 'column' }}>
         {flatTasks.length > 0 ? (
           <SortableContext items={flatTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -118,7 +126,7 @@ function DayRowComponent({
             </motion.div>
           </SortableContext>
         ) : (
-          <>
+          <motion.div>
             {slotPrefs.am && (
               <div ref={setAmRef} style={{
                 background: isOverAm ? 'var(--accent-soft)' : 'transparent',
@@ -177,9 +185,9 @@ function DayRowComponent({
                 </SortableContext>
               </div>
             )}
-          </>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     </motion.section>
   )
 }
