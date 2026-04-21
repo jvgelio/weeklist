@@ -8,7 +8,7 @@ export interface NLToken {
   end:       number
   raw:       string
   date?:     string
-  slot?:     'am' | 'pm'
+  slot?:     'am' | 'pm' | 'eve'
   priority?: 'high' | 'med' | 'low'
   tag?:      string
   label:     string
@@ -18,7 +18,7 @@ export interface NLParseResult {
   cleanTitle: string
   tokens:     NLToken[]
   date:       string | null
-  slot:       'am' | 'pm' | null
+  slot:       'am' | 'pm' | 'eve' | null
   priority:   'high' | 'med' | 'low' | null
   tags:       string[]
 }
@@ -26,7 +26,7 @@ export interface NLParseResult {
 export interface NLParsedData {
   priority: 'high' | 'med' | 'low' | null
   tags:     string[]
-  slot:     'am' | 'pm' | null
+  slot:     'am' | 'pm' | 'eve' | null
   date:     string | null
 }
 
@@ -257,10 +257,16 @@ const RULES: Rule[] = [
     () => ({ kind: 'slot', slot: 'am', label: 'manhã' })
   ),
 
-  // 15. "de tarde" / "de noite" → PM slot
+  // 15. "de tarde" → PM slot
   makeRule(
-    /\bde\s+(tarde|noite)\b/gi,
+    /\bde\s+tarde\b/gi,
     () => ({ kind: 'slot', slot: 'pm', label: 'tarde' })
+  ),
+
+  // 15b. "de noite" → EVE slot
+  makeRule(
+    /\bde\s+noite\b/gi,
+    () => ({ kind: 'slot', slot: 'eve', label: 'noite' })
   ),
 
   // 16. p1/p2/p3 → priority (not inside a word, not preceded by # or letters)
@@ -323,7 +329,7 @@ export function parseNL(input: string, today: Date, weekStart: Date): NLParseRes
 
   // Assemble resolved fields (last wins for date/priority/slot)
   let date: string | null = null
-  let slot: 'am' | 'pm' | null = null
+  let slot: 'am' | 'pm' | 'eve' | null = null
   let priority: 'high' | 'med' | 'low' | null = null
   const tags: string[] = []
 

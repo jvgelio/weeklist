@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
   Check, Plus, ChevronRight, Repeat2, Flag, GripVertical,
-  Trash2, ArrowRight, Inbox, Clock, CalendarDays, Sun, Moon,
+  Trash2, ArrowRight, Inbox, Clock, CalendarDays, Sun, Moon, Sunset,
   ExternalLink,
 } from 'lucide-react'
 import { startOfWeek } from '../lib/constants'
@@ -57,6 +57,9 @@ export function IconSun({ size = 13 }: IconProps) {
   return <Sun size={size}/>
 }
 export function IconMoon({ size = 13 }: IconProps) {
+  return <Sunset size={size}/>
+}
+export function IconEvening({ size = 13 }: IconProps) {
   return <Moon size={size}/>
 }
 
@@ -75,6 +78,7 @@ export const Icon = {
   Week: IconWeek,
   Sun: IconSun,
   Moon: IconMoon,
+  Evening: IconEvening,
 }
 
 // ---- TagChip ----

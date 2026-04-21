@@ -4,6 +4,7 @@ import { Hono } from 'hono'
 import { authRouter, getAuthUser } from './routes/auth.js'
 import { tasksRouter } from './routes/tasks.js'
 import { tagsRouter } from './routes/tags.js'
+import { settingsRouter } from './routes/settings.js'
 
 const app = new Hono()
 
@@ -32,9 +33,17 @@ app.use('/api/tags/*', async (c, next) => {
   await next()
 })
 
+app.use('/api/settings/*', async (c, next) => {
+  const user = await getAuthUser(c)
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  c.set('user', user)
+  await next()
+})
+
 // API routes
 app.route('/api/tasks', tasksRouter)
 app.route('/api/tags', tagsRouter)
+app.route('/api/settings', settingsRouter)
 
 // Static files (production — Vite build output)
 app.use('/*', serveStatic({ root: './dist' }))

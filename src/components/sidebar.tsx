@@ -205,6 +205,7 @@ export interface SidebarProps {
   collapsed: boolean
   onToggleCollapsed: () => void
   user: { name: string, email: string, avatarUrl: string } | null
+  onOpenSettings: () => void
 }
 
 export function Sidebar({
@@ -214,6 +215,7 @@ export function Sidebar({
   accent,
   collapsed, onToggleCollapsed,
   user,
+  onOpenSettings,
 }: SidebarProps) {
   const today = new Date()
   const currentMonday = startOfWeek(today, 1)
@@ -354,7 +356,7 @@ export function Sidebar({
           icon={<Settings size={14} />}
           label="Settings"
           active={false}
-          onClick={() => {}}
+          onClick={onOpenSettings}
           accent={accent}
         />
 

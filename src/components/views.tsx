@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { MONTH_PT, DAY_NAMES_PT, PRESET_COLORS, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
-import type { Task, TaskMap, Variant, Tag } from '../lib/types'
+import type { Task, TaskMap, Variant, Tag, SlotPrefs } from '../lib/types'
 import {
   DayRow, DayColumn,
   WeekendStrip, WeekendColumnsStrip,
@@ -226,7 +226,8 @@ interface WeekViewProps {
   dark: boolean
   accent: string
   onOpenTask: (task: Task) => void
-  onAddTask: (bucketKey: string, title: string, slot: 'am' | 'pm') => void
+  onAddTask: (bucketKey: string, title: string, slot: 'am' | 'pm' | 'eve') => void
+  slotPrefs: SlotPrefs
   onUpdateTask: (task: Task) => void
   onDeleteTask: (id: string) => void
   onMoveTask: (id: string, bucketKey: string) => void
@@ -248,6 +249,7 @@ export function WeekView({
   onPrevWeek, onNextWeek, onToday,
   onChangeVariant, onToggleWeekend, onToggleDark,
   overdueTasks, onPullOneOverdue, onPullAllOverdue,
+  slotPrefs,
 }: WeekViewProps) {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
   const visibleDays = useMemo(
@@ -275,6 +277,7 @@ export function WeekView({
 
   const dayProps = {
     accent,
+    slotPrefs,
     onOpenTask,
     onAddTask,
     onUpdateTask,

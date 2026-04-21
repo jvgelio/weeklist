@@ -34,6 +34,9 @@ import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
 import { QuickAdd, type QuickAddCreateParams } from './quick-add'
 import { Login } from './login'
+import { SettingsModal } from './settings-modal'
+import type { SlotPrefs } from '../lib/types'
+import { firstEnabledSlot } from '../lib/slot-utils'
 
 const TODAY = new Date()
 const TEXT_DEBOUNCE_MS = 300
@@ -86,6 +89,12 @@ function toUpdatePayload(current: Task, next: Task): MutableTaskPatch {
 export default function App() {
   const { data: authData, isLoading: authLoading } = useAuth()
 
+  const slotPrefs: SlotPrefs = {
+    am:  authData?.user?.slotAm  ?? true,
+    pm:  authData?.user?.slotPm  ?? true,
+    eve: authData?.user?.slotEve ?? false,
+  }
+
   const [view, setView] = useState<View>('week')
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(TODAY, 1))
   const [showWeekend, setShowWeekend] = useState(() => {
@@ -101,6 +110,7 @@ export default function App() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draggingTask, setDraggingTask] = useState<Task | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   const textTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const pendingTextPatchRef = useRef<Map<string, TextPatch>>(new Map())
@@ -216,7 +226,7 @@ export default function App() {
     textTimersRef.current.set(taskId, timer)
   }, [flushTaskTextPatch])
 
-  const handleAddTask = useCallback((bucketKey: string, title: string, slot: 'am' | 'pm' = 'am') => {
+  const handleAddTask = useCallback((bucketKey: string, title: string, slot: 'am' | 'pm' | 'eve' = 'am') => {
     const tasksInBucket = bucketKey === '__inbox'
       ? inboxTasks
       : (weekTasks[bucketKey] ?? [])
@@ -245,7 +255,7 @@ export default function App() {
     createTask.mutate({
       title,
       bucketKey,
-      slot: 'am',
+      slot: firstEnabledSlot(slotPrefs) ?? 'am',
       position: tasksInBucket.length,
       priority: priority ?? undefined,
       tags,
@@ -375,16 +385,16 @@ export default function App() {
     if (typeof active.id === 'string' && (active.id as string).startsWith('overdue:')) {
       const taskId = (active.id as string).slice('overdue:'.length)
       let targetBucket: string | null = null
-      let targetSlot: 'am' | 'pm' | null = null
+      let targetSlot: 'am' | 'pm' | 'eve' | null = null
 
       if (overData?.type === 'zone') {
         targetBucket = overData.bucketKey!
-        targetSlot = (overData.slot as 'am' | 'pm' | null | undefined) ?? null
+        targetSlot = (overData.slot as 'am' | 'pm' | 'eve' | null | undefined) ?? null
       } else if (/^\d{4}-\d{2}-\d{2}/.test(overId) || overId.includes('weeklist-') || overId.startsWith('__')) {
         if (overId.includes(':')) {
           const [bucket, slot] = overId.split(':')
           targetBucket = bucket
-          targetSlot = slot as 'am' | 'pm'
+          targetSlot = slot as 'am' | 'pm' | 'eve'
         } else {
           targetBucket = overId
         }
@@ -415,7 +425,7 @@ export default function App() {
     // Caso 1: drop em zona explícita com data (AM/PM/weeklist/inbox via sidebar)
     if (overData?.type === 'zone') {
       const targetBucket = overData.bucketKey!
-      const targetSlot = (overData.slot as 'am' | 'pm' | null | undefined) ?? null
+      const targetSlot = (overData.slot as 'am' | 'pm' | 'eve' | null | undefined) ?? null
       const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
       moveTask.mutate({
         id: taskId,
@@ -433,11 +443,11 @@ export default function App() {
     const isSpecialBucket = overId.startsWith('__')
     if (isDateBucket || isWeeklistBucket || isSpecialBucket) {
       let targetBucket = overId
-      let targetSlot: 'am' | 'pm' | null = null
+      let targetSlot: 'am' | 'pm' | 'eve' | null = null
       if (overId.includes(':')) {
         const [bucket, slot] = overId.split(':')
         targetBucket = bucket
-        targetSlot = slot as 'am' | 'pm'
+        targetSlot = slot as 'am' | 'pm' | 'eve'
       }
       const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
       moveTask.mutate({
@@ -456,7 +466,7 @@ export default function App() {
 
     const targetBucket = overTask.bucketKey
     // Usa o slot do data da tarefa de destino (mais confiável que inferir)
-    const targetSlot = ((overData as { slot?: string | null } | undefined)?.slot ?? overTask.slot) as 'am' | 'pm' | null
+    const targetSlot = ((overData as { slot?: string | null } | undefined)?.slot ?? overTask.slot) as 'am' | 'pm' | 'eve' | null
     const targetList = targetBucket === '__inbox' ? inboxTasks : (weekTasks[targetBucket] ?? [])
     const overIndex = targetList.findIndex((entry) => entry.id === overId)
 
@@ -527,6 +537,7 @@ export default function App() {
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((v) => !v)}
           user={authData?.user ?? null}
+          onOpenSettings={() => setShowSettings(true)}
         />
 
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -545,6 +556,7 @@ export default function App() {
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
               onAddTask={handleAddTask}
               onMoveTask={handleMoveTask}
+              slotPrefs={slotPrefs}
               overdueTasks={overdueTasks}
               onPullOneOverdue={handlePullOneOverdue}
               onPullAllOverdue={handlePullAllOverdue}
@@ -613,6 +625,14 @@ export default function App() {
             handleQuickAdd(params)
             setShowQuickAdd(false)
           }}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsModal
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          slotPrefs={slotPrefs}
         />
       )}
     </DndContext>

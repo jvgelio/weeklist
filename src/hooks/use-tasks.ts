@@ -76,7 +76,17 @@ export function useAuth() {
     queryFn: async () => {
       const res = await fetch('/api/auth/me')
       if (!res.ok) throw new Error('Auth failed')
-      return res.json() as Promise<{ user: { id: string, name: string, email: string, avatarUrl: string } | null }>
+      return res.json() as Promise<{
+        user: {
+          id: string
+          name: string
+          email: string
+          avatarUrl: string
+          slotAm: boolean
+          slotPm: boolean
+          slotEve: boolean
+        } | null
+      }>
     },
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -93,6 +103,28 @@ export function useLogout() {
       qc.setQueryData(['auth', 'me'], { user: null })
       qc.clear() // clear all task caches
     }
+  })
+}
+
+export function useUpdateSlotPrefs() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (prefs: { am: boolean; pm: boolean; eve: boolean }) => {
+      const res = await fetch('/api/settings/slots', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prefs),
+      })
+      if (!res.ok) throw new Error('Failed to update slot prefs')
+      return res.json() as Promise<{ user: { slotAm: boolean; slotPm: boolean; slotEve: boolean } }>
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(['auth', 'me'], (old: any) => ({
+        ...old,
+        user: { ...old?.user, ...data.user },
+      }))
+      qc.invalidateQueries({ queryKey: ['tasks', 'week'] })
+    },
   })
 }
 

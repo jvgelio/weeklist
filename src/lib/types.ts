@@ -11,7 +11,7 @@ export interface Task {
   title: string
   done: boolean
   bucketKey: string
-  slot: 'am' | 'pm' | null
+  slot: 'am' | 'pm' | 'eve' | null
   priority: 'high' | 'med' | 'low' | null
   recurring: 'daily' | 'weekly' | 'monthly' | null
   tags: string[]
@@ -31,9 +31,11 @@ export interface Tag {
 
 export type View = 'week' | 'inbox' | 'tags'
 export type Variant = 'quiet' | 'columns'
-export type Slot = 'am' | 'pm'
+export type Slot = 'am' | 'pm' | 'eve'
 export type Priority = 'high' | 'med' | 'low'
 export type Recurring = 'daily' | 'weekly' | 'monthly'
 
 // Tasks grouped by bucket key
 export type TaskMap = Record<string, Task[]>
+
+export type { SlotPrefs } from './slot-utils'

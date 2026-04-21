@@ -7,6 +7,9 @@ export const users = pgTable('users', {
   name: text('name').notNull(),
   avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  slotAm:  boolean('slot_am').default(true).notNull(),
+  slotPm:  boolean('slot_pm').default(true).notNull(),
+  slotEve: boolean('slot_eve').default(false).notNull(),
 })
 
 export const sessions = pgTable('sessions', {
