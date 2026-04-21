@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -235,6 +236,15 @@ function NoteSnippet({ note }: { note: string | null }) {
 
 // ---- TaskRow ----
 
+const taskVariants = {
+  hidden: { opacity: 0, y: 5 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.2 }
+  }
+}
+
 interface TaskRowProps {
   task: Task
   onChange: (t: Task) => void
@@ -296,10 +306,11 @@ function TaskRowComponent({
   const hasBody = !!(task.note?.trim() || task.recurring || subTotal > 0 || task.tags.length > 0)
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       {...attributes}
       {...(isOverlay ? {} : (!showDragHandle ? listeners : {}))}
+      variants={taskVariants}
       className={`task-row ${className || ''}`}
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -406,7 +417,7 @@ function TaskRowComponent({
           </button>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
