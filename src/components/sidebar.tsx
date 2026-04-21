@@ -385,7 +385,7 @@ export function Sidebar({
             )}
             {!collapsed && (
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.email ? user.email.split('@')[0] : 'Usuário'}
+                {user?.name || 'Usuário'}
               </span>
             )}
           </div>
