@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { CalendarDays, Inbox, Clock } from 'lucide-react'
+import { CalendarDays, Inbox, Clock, Hash } from 'lucide-react'
 import { addDays, isoDate, sameDay, startOfWeek, MONTH_PT } from '../lib/constants'
 import type { View, Variant, TaskMap } from '../lib/types'
 
@@ -14,6 +14,9 @@ function IconInbox({ size = 14 }: { size?: number }) {
 }
 function IconSomeday({ size = 14 }: { size?: number }) {
   return <Clock size={size}/>
+}
+function IconHash({ size = 14 }: { size?: number }) {
+  return <Hash size={size}/>
 }
 
 // ---- getWeekNumber ----
@@ -291,6 +294,10 @@ export function Sidebar({
           onClick={() => onViewChange('inbox')}
           accent={accent}
           view={view}
+        />
+        <ViewButton
+          collapsed={collapsed} icon={<IconHash />} label="Tags"
+          active={view === 'tags'} onClick={() => onViewChange('tags')} accent={accent}
         />
       </div>
 
