@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { TAGS } from '../lib/constants'
+import { useTags } from '../hooks/use-tags'
 import type { Task, Subtask } from '../lib/types'
 import { IconPlus, IconTrash, Checkbox } from './task-components'
 
@@ -59,6 +59,7 @@ export function TaskEditor({
   onClose,
   onMoveTask,
 }: TaskEditorProps) {
+  const { data: allTags = [] } = useTags()
   const [draft, setDraft] = useState<Task>(task)
   const titleRef = useRef<HTMLInputElement>(null)
 
@@ -271,10 +272,10 @@ export function TaskEditor({
 
         <EditorSection label="Tags">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {Object.entries(TAGS).map(([key, tag]) => {
-              const active = draft.tags.includes(key)
+            {allTags.map((tag) => {
+              const active = draft.tags.includes(tag.id)
               return (
-                <button key={key} onClick={() => toggleTag(key)} style={{
+                <button key={tag.id} onClick={() => toggleTag(tag.id)} style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '5px 12px', borderRadius: 9999,
                   border: active ? '1.5px solid var(--ink)' : '1.5px solid var(--line-strong)',
@@ -283,7 +284,7 @@ export function TaskEditor({
                   letterSpacing: '-0.01em', cursor: 'pointer',
                 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 9999, background: tag.color, flexShrink: 0 }} />
-                  {tag.label}
+                  {tag.name}
                 </button>
               )
             })}

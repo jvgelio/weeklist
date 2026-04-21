@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { MONTH_PT, DAY_NAMES_PT, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
-import type { Task, TaskMap, Variant } from '../lib/types'
+import { MONTH_PT, DAY_NAMES_PT, PRESET_COLORS, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
+import type { Task, TaskMap, Variant, Tag } from '../lib/types'
 import {
   DayRow, DayColumn,
   WeekendStrip, WeekendColumnsStrip,
   WeeklistStrip, WeeklistPanel,
 } from './day-row'
 import { IconArrow, TaskRow, InlineAdd } from './task-components'
+import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '../hooks/use-tags'
 
 const TODAY = new Date()
 
@@ -548,6 +549,191 @@ export function ListView({
         </SortableContext>
         <InlineAdd onAdd={t => onAddTask(bucket, t)} placeholder="Adicionar tarefa" />
       </div>
+    </div>
+  )
+}
+
+// ---- TagsView ----
+
+function ColorDot({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 20, height: 20, borderRadius: '50%',
+        background: color, border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
+        boxShadow: selected ? `0 0 0 2px var(--bg-raised), 0 0 0 4px ${color}` : 'none',
+        transition: 'box-shadow 120ms ease',
+      }}
+    />
+  )
+}
+
+function TagRowIdle({ tag, onEdit, onDelete }: { tag: Tag; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 0', borderBottom: '1px solid var(--line)',
+    }}>
+      <span style={{ width: 12, height: 12, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
+      <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{tag.name}</span>
+      <span style={{ fontSize: 12, color: 'var(--ink-mute)', marginRight: 4 }}>
+        {tag.task_count > 0 ? `${tag.task_count} tarefa${tag.task_count !== 1 ? 's' : ''}` : ''}
+      </span>
+      <button className="ghost-btn" onClick={onEdit} style={{ fontSize: 12, padding: '3px 8px' }}>Editar</button>
+      <button className="ghost-btn" onClick={onDelete} style={{ fontSize: 12, padding: '3px 8px', color: 'var(--prio-high)' }}>Excluir</button>
+    </div>
+  )
+}
+
+function TagRowEditing({ tag, onDone }: { tag: Tag; onDone: () => void }) {
+  const [name, setName] = useState(tag.name)
+  const [color, setColor] = useState(tag.color)
+  const updateTag = useUpdateTag()
+
+  function save() {
+    if (!name.trim()) return
+    updateTag.mutate({ id: tag.id, data: { name: name.trim(), color } })
+    onDone()
+  }
+
+  return (
+    <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onDone() }}
+          style={{
+            flex: 1, border: '1px solid var(--line-strong)', borderRadius: 6,
+            padding: '4px 8px', fontSize: 14, background: 'var(--bg-sunken)',
+            color: 'var(--ink)', outline: 'none',
+          }}
+        />
+        <button className="pill-btn" onClick={save} style={{ fontSize: 12, padding: '4px 12px' }}>Salvar</button>
+        <button className="ghost-btn" onClick={onDone} style={{ fontSize: 12 }}>Cancelar</button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingLeft: 20 }}>
+        {PRESET_COLORS.map((c) => (
+          <ColorDot key={c} color={c} selected={color === c} onClick={() => setColor(c)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TagRowDelete({ tag, onCancel }: { tag: Tag; onCancel: () => void }) {
+  const deleteTag = useDeleteTag()
+  return (
+    <div style={{
+      padding: '10px 12px', borderBottom: '1px solid var(--line)',
+      background: 'rgba(239,68,68,0.06)', borderRadius: 8,
+      display: 'flex', alignItems: 'center', gap: 10,
+    }}>
+      <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
+        Excluir <strong>{tag.name}</strong>?
+        {tag.task_count > 0 && (
+          <span style={{ color: 'var(--ink-mute)' }}>
+            {' '}Tag removida de {tag.task_count} tarefa{tag.task_count !== 1 ? 's' : ''}.
+          </span>
+        )}
+      </span>
+      <button
+        className="ghost-btn"
+        onClick={() => { deleteTag.mutate(tag.id); onCancel() }}
+        style={{ fontSize: 12, color: 'var(--prio-high)', padding: '3px 8px' }}
+      >
+        Confirmar
+      </button>
+      <button className="ghost-btn" onClick={onCancel} style={{ fontSize: 12, padding: '3px 8px' }}>Cancelar</button>
+    </div>
+  )
+}
+
+function NewTagRow({ onDone }: { onDone: () => void }) {
+  const [name, setName] = useState('')
+  const [color, setColor] = useState(PRESET_COLORS[0])
+  const createTag = useCreateTag()
+
+  function save() {
+    if (!name.trim()) return
+    createTag.mutate({ name: name.trim(), color })
+    onDone()
+  }
+
+  return (
+    <div style={{ padding: '10px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <input
+          autoFocus
+          value={name}
+          placeholder="Nome da tag..."
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') onDone() }}
+          style={{
+            flex: 1, border: '1px solid var(--line-strong)', borderRadius: 6,
+            padding: '4px 8px', fontSize: 14, background: 'var(--bg-sunken)',
+            color: 'var(--ink)', outline: 'none',
+          }}
+        />
+        <button className="pill-btn" onClick={save} style={{ fontSize: 12, padding: '4px 12px' }}>Criar</button>
+        <button className="ghost-btn" onClick={onDone} style={{ fontSize: 12 }}>Cancelar</button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingLeft: 20 }}>
+        {PRESET_COLORS.map((c) => (
+          <ColorDot key={c} color={c} selected={color === c} onClick={() => setColor(c)} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function TagsView() {
+  const { data: allTags = [] } = useTags()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
+
+  return (
+    <div style={{ padding: '32px 24px', maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--ink)' }}>
+          Tags
+        </h2>
+        {!adding && (
+          <button className="pill-btn" onClick={() => { setAdding(true); setEditingId(null); setDeletingId(null) }} style={{ fontSize: 13 }}>
+            + Nova tag
+          </button>
+        )}
+      </div>
+
+      {adding && <NewTagRow onDone={() => setAdding(false)} />}
+
+      {allTags.map((tag) => {
+        if (deletingId === tag.id) {
+          return <TagRowDelete key={tag.id} tag={tag} onCancel={() => setDeletingId(null)} />
+        }
+        if (editingId === tag.id) {
+          return <TagRowEditing key={tag.id} tag={tag} onDone={() => setEditingId(null)} />
+        }
+        return (
+          <TagRowIdle
+            key={tag.id}
+            tag={tag}
+            onEdit={() => { setEditingId(tag.id); setDeletingId(null); setAdding(false) }}
+            onDelete={() => { setDeletingId(tag.id); setEditingId(null); setAdding(false) }}
+          />
+        )
+      })}
+
+      {allTags.length === 0 && !adding && (
+        <p style={{ color: 'var(--ink-mute)', fontSize: 14, textAlign: 'center', marginTop: 48 }}>
+          Nenhuma tag ainda.
+        </p>
+      )}
     </div>
   )
 }

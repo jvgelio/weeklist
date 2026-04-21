@@ -1,4 +1,4 @@
-import type { Task } from './types'
+import type { Task, Tag } from './types'
 
 const BASE = '/api'
 
@@ -107,4 +107,38 @@ export async function moveTask(
 export async function deleteTask(id: string): Promise<void> {
   const res = await fetch(`${BASE}/tasks/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`Failed to delete task: ${res.status}`)
+}
+
+export async function fetchTags(signal?: AbortSignal): Promise<Tag[]> {
+  const res = await fetch(`${BASE}/tags`, { signal })
+  if (!res.ok) throw new Error(`Failed to fetch tags: ${res.status}`)
+  return res.json()
+}
+
+export async function createTag(data: { name: string; color: string }): Promise<Tag> {
+  const res = await fetch(`${BASE}/tags`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed to create tag: ${res.status}`)
+  return res.json()
+}
+
+export async function updateTag(
+  id: string,
+  data: { name?: string; color?: string }
+): Promise<Tag> {
+  const res = await fetch(`${BASE}/tags/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed to update tag: ${res.status}`)
+  return res.json()
+}
+
+export async function deleteTag(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/tags/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`Failed to delete tag: ${res.status}`)
 }

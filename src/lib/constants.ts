@@ -1,12 +1,14 @@
-// Tag definitions (colors reference CSS custom properties from tokens.css)
-export const TAGS: Record<string, { label: string; color: string }> = {
-  work:     { label: 'work',     color: 'var(--tag-work)' },
-  personal: { label: 'personal', color: 'var(--tag-personal)' },
-  urgent:   { label: 'urgent',   color: 'var(--tag-urgent)' },
-  focus:    { label: 'focus',    color: 'var(--tag-focus)' },
-  health:   { label: 'health',   color: 'var(--tag-health)' },
-  errand:   { label: 'errand',   color: 'var(--tag-errand)' },
-}
+export const PRESET_COLORS: string[] = [
+  'oklch(0.82 0.13 90)',
+  'oklch(0.82 0.13 150)',
+  'oklch(0.82 0.13 30)',
+  'oklch(0.82 0.13 260)',
+  'oklch(0.82 0.13 200)',
+  'oklch(0.82 0.13 340)',
+  'oklch(0.82 0.13 0)',
+  'oklch(0.82 0.13 310)',
+  'oklch(0.82 0.13 180)',
+]
 
 export const PRIORITY_COLORS: Record<string, string> = {
   high: '#d63b2a',

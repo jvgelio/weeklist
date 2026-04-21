@@ -28,7 +28,7 @@ import {
   type ClientMutationTrace,
 } from '../hooks/use-tasks'
 import { Sidebar } from './sidebar'
-import { WeekView, ListView } from './views'
+import { WeekView, ListView, TagsView } from './views'
 import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
 import { QuickAdd, type QuickAddCreateParams } from './quick-add'
@@ -548,6 +548,8 @@ export default function App() {
               {...sharedDayProps}
             />
           )}
+
+          {view === 'tags' && <TagsView />}
         </main>
 
         <DragOverlay>
