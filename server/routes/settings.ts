@@ -45,3 +45,20 @@ settingsRouter.patch('/slots', async (c) => {
 
   return c.json({ user: updatedUser })
 })
+
+settingsRouter.patch('/display', async (c) => {
+  const user = await getAuthUser(c)
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+
+  const body = await c.req.json<{ darkMode?: boolean; showWeekend?: boolean }>()
+  const updates: Record<string, boolean> = {}
+  if (body.darkMode !== undefined) updates.darkMode = Boolean(body.darkMode)
+  if (body.showWeekend !== undefined) updates.showWeekend = Boolean(body.showWeekend)
+
+  const [updatedUser] = await db.update(users)
+    .set(updates)
+    .where(eq(users.id, user.id))
+    .returning()
+
+  return c.json({ user: updatedUser })
+})
