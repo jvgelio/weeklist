@@ -56,3 +56,11 @@ export function isoDate(date: Date): string {
 export function sameDay(a: Date, b: Date): boolean {
   return isoDate(a) === isoDate(b)
 }
+
+export function isPastDay(date: Date): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(date)
+  target.setHours(0, 0, 0, 0)
+  return target.getTime() < today.getTime()
+}
