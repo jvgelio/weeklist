@@ -1,10 +1,19 @@
 import React, { useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
-import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, isoDate, sameDay } from '../lib/constants'
-import type { Task, SlotPrefs } from '../lib/types'
-import { getDisplaySlot } from '../lib/slot-utils'
-import { TaskRow, InlineAdd, LunchDivider, IconSun, IconMoon, IconEvening, IconChevron } from './task-components'
+
+const columnVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { 
+      duration: 0.4,
+      staggerChildren: 0.05 // Stagger tasks within the column
+    }
+  }
+}
 
 // ---- DayRow (manifesto + quiet variants) ----
 
@@ -54,7 +63,10 @@ function DayRowComponent({
 
   /* ---- Quiet (TeuxDeux) ---- */
   return (
-    <section
+    <motion.section
+      variants={columnVariants}
+      initial="hidden"
+      animate="visible"
       style={{
         padding: '14px 16px',
         borderRadius: 14,
@@ -166,7 +178,7 @@ function DayRowComponent({
           </>
         )}
       </div>
-    </section>
+    </motion.section>
   )
 }
 
@@ -222,7 +234,10 @@ function DayColumnComponent({
   }
 
   return (
-    <section
+    <motion.section
+      variants={columnVariants}
+      initial="hidden"
+      animate="visible"
       style={{
         flex: compact ? '0 0 240px' : '1 1 0',
         minWidth: compact ? 240 : 200,
@@ -353,7 +368,7 @@ function DayColumnComponent({
           </div>
         )}
       </div>
-    </section>
+    </motion.section>
   )
 }
 
