@@ -108,10 +108,10 @@ function DayRowComponent({
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {flatTasks.length > 0 ? (
           <SortableContext items={flatTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {flatTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps} />)}
               <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
-            </div>
+            </motion.div>
           </SortableContext>
         ) : (
           <>
@@ -122,13 +122,13 @@ function DayRowComponent({
                 borderRadius: 12, transition: 'all 120ms ease', minHeight: 60, padding: isOverAm ? '4px' : 0,
               }}>
                 <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <IconSun size={8} /> manhã
                     </div>
                     {amTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps} />)}
                     <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </div>
             )}
@@ -143,13 +143,13 @@ function DayRowComponent({
                 borderRadius: 12, transition: 'all 120ms ease', minHeight: 60, padding: isOverPm ? '4px' : 0,
               }}>
                 <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <IconMoon size={8} /> tarde
                     </div>
                     {pmTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps} />)}
                     <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </div>
             )}
@@ -163,13 +163,13 @@ function DayRowComponent({
                 borderRadius: 12, transition: 'all 120ms ease', minHeight: 60, padding: isOverEve ? '4px' : 0,
               }}>
                 <SortableContext items={eveTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <IconEvening size={8} /> noite
                     </div>
                     {eveTasks.map(t => <TaskRow key={t.id} task={t} compact {...taskProps} />)}
                     <InlineAdd compact onAdd={title => onAddTask(key, title, 'eve')} placeholder="Adicionar tarefa" />
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </div>
             )}
@@ -306,9 +306,10 @@ function DayColumnComponent({
               <IconSun size={8} /> manhã
             </div>
             <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+                {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              </motion.div>
             </SortableContext>
-            <div style={{ flex: 1 }} />
             <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
           </div>
         )}
@@ -332,9 +333,10 @@ function DayColumnComponent({
               <IconMoon size={8} /> tarde
             </div>
             <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+                {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              </motion.div>
             </SortableContext>
-            <div style={{ flex: 1 }} />
             <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
           </div>
         )}
@@ -357,9 +359,10 @@ function DayColumnComponent({
               <IconEvening size={8} /> noite
             </div>
             <SortableContext items={eveTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              {eveTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+                {eveTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
+              </motion.div>
             </SortableContext>
-            <div style={{ flex: 1 }} />
             <InlineAdd compact onAdd={title => onAddTask(key, title, 'eve')} placeholder="Adicionar tarefa" />
           </div>
         )}
@@ -535,23 +538,23 @@ function WeekendDayCell({
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {flatTasks.length > 0 ? (
           <SortableContext items={flatTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {flatTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
               <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
-            </div>
+            </motion.div>
           </SortableContext>
         ) : (
           <>
             {slotPrefs.am && (
               <div ref={setAmRef} style={{ background: isOverAm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
                 <SortableContext items={amTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <IconSun size={8} /> manhã
                     </div>
                     {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
                     <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </div>
             )}
@@ -562,13 +565,13 @@ function WeekendDayCell({
             {slotPrefs.pm && (
               <div ref={setPmRef} style={{ background: isOverPm ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
                 <SortableContext items={pmTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <IconMoon size={8} /> tarde
                     </div>
                     {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
                     <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </div>
             )}
@@ -578,13 +581,13 @@ function WeekendDayCell({
             {slotPrefs.eve && (
               <div ref={setEveRef} style={{ background: isOverEve ? 'var(--accent-soft)' : 'transparent', borderRadius: 8, transition: 'background 120ms', minHeight: 60 }}>
                 <SortableContext items={eveTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', padding: '0 4px 3px', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <IconEvening size={8} /> noite
                     </div>
                     {eveTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
                     <InlineAdd compact onAdd={title => onAddTask(key, title, 'eve')} placeholder="Adicionar tarefa" />
-                  </div>
+                  </motion.div>
                 </SortableContext>
               </div>
             )}
@@ -659,8 +662,14 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
               Nenhuma tarefa na weeklist. Arraste algo para cá!
             </div>
           ) : (
-            <>
-              <SortableContext items={tasks.map(t => t.id)} strategy={rectSortingStrategy}>
+            <SortableContext items={tasks.map(t => t.id)} strategy={rectSortingStrategy}>
+              <motion.div style={{
+                display: 'grid',
+                gridTemplateColumns: 'inherit',
+                gap: 'inherit',
+                width: '100%',
+                gridColumn: '1 / -1'
+              }}>
                 {tasks.map(t => (
                   <TaskRow
                     key={t.id}
@@ -675,16 +684,16 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
                     }}
                   />
                 ))}
-              </SortableContext>
-              <div style={{ display: 'flex', alignItems: 'flex-start', padding: '4px' }}>
-                <InlineAdd
-                  compact
-                  onAdd={title => onAddTask(bucketKey, title, 'am')}
-                  placeholder="Adicionar tarefa"
-                />
-              </div>
-            </>
+              </motion.div>
+            </SortableContext>
           )}
+          <div style={{ display: 'flex', alignItems: 'flex-start', padding: '4px' }}>
+            <InlineAdd
+              compact
+              onAdd={title => onAddTask(bucketKey, title, 'am')}
+              placeholder="Adicionar tarefa"
+            />
+          </div>
         </div>
       )}
     </div>
@@ -733,20 +742,22 @@ export function WeeklistPanel({ bucketKey, tasks, accent, onOpenTask, onAddTask,
           </div>
         ) : (
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {tasks.map(t => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                {...taskProps}
-                style={{
-                  background: 'var(--bg-raised)',
-                  padding: '10px 12px',
-                  borderRadius: 12,
-                  boxShadow: '0 2px 8px -2px rgba(0,0,0,0.05), var(--ring)',
-                  border: '1px solid var(--line)',
-                }}
-              />
-            ))}
+            <motion.div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {tasks.map(t => (
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  {...taskProps}
+                  style={{
+                    background: 'var(--bg-raised)',
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    boxShadow: '0 2px 8px -2px rgba(0,0,0,0.05), var(--ring)',
+                    border: '1px solid var(--line)',
+                  }}
+                />
+              ))}
+            </motion.div>
           </SortableContext>
         )}
         <div style={{ marginTop: 4 }}>

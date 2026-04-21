@@ -380,7 +380,7 @@ export function WeekView({
       {/* Body */}
       {isColumns ? (
         <div style={{ flex: 1, minHeight: 0, padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ flex: 1, display: 'flex', gap: 10, minHeight: 0 }}>
+          <motion.div style={{ flex: 1, display: 'flex', gap: 10, minHeight: 0 }}>
             {visibleDays.map(d => {
               const key = isoDate(d)
               return (
@@ -394,7 +394,7 @@ export function WeekView({
                 />
               )
             })}
-          </div>
+          </motion.div>
           {showWeekend && (
             <WeekendColumnsStrip
               days={weekend} tasks={tasks}
@@ -405,7 +405,7 @@ export function WeekView({
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
-            <div style={{
+            <motion.div style={{
               display: 'flex',
               flexDirection: 'column',
               gap: variant === 'quiet' ? 12 : 0,
@@ -425,7 +425,7 @@ export function WeekView({
                   />
                 )
               })}
-            </div>
+            </motion.div>
             {showWeekend && (
               <WeekendStrip
                 days={weekend} tasks={tasks} variant={variant}
