@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "dim_past_days" boolean DEFAULT true NOT NULL;

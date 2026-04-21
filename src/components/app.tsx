@@ -106,6 +106,10 @@ export default function App() {
     const v = localStorage.getItem('wl_weekend')
     return v === null ? true : v === '1'
   })
+  const [dimPastDays, setDimPastDays] = useState(() => {
+    const v = localStorage.getItem('wl_dim_past_days')
+    return v === null ? true : v === '1'
+  })
   const [dark, setDark] = useState(() => localStorage.getItem('wl_dark') === '1')
   const [variant, setVariant] = useState<Variant>(() => {
     const v = localStorage.getItem('wl_variant')
@@ -125,13 +129,15 @@ export default function App() {
   useEffect(() => { localStorage.setItem('wl_variant', variant) }, [variant])
   useEffect(() => { localStorage.setItem('wl_sidebar_collapsed', collapsed ? '1' : '0') }, [collapsed])
 
-  // Sync dark/weekend from server once auth loads (keyed on user id so it runs once per login)
+  // Sync dark/weekend/dimPastDays from server once auth loads
   useEffect(() => {
     if (!authData?.user) return
     setDark(authData.user.darkMode)
     setShowWeekend(authData.user.showWeekend)
+    setDimPastDays(authData.user.dimPastDays)
     localStorage.setItem('wl_dark', authData.user.darkMode ? '1' : '0')
     localStorage.setItem('wl_weekend', authData.user.showWeekend ? '1' : '0')
+    localStorage.setItem('wl_dim_past_days', authData.user.dimPastDays ? '1' : '0')
   }, [authData?.user?.id])
 
   // Theme
@@ -169,6 +175,15 @@ export default function App() {
       const next = !s
       updateDisplayPrefs.mutate({ showWeekend: next })
       localStorage.setItem('wl_weekend', next ? '1' : '0')
+      return next
+    })
+  }, [updateDisplayPrefs])
+
+  const handleToggleDimPastDays = useCallback(() => {
+    setDimPastDays((d) => {
+      const next = !d
+      updateDisplayPrefs.mutate({ dimPastDays: next })
+      localStorage.setItem('wl_dim_past_days', next ? '1' : '0')
       return next
     })
   }, [updateDisplayPrefs])
@@ -603,6 +618,7 @@ export default function App() {
               tasks={weekTasks}
               variant={effectiveVariant}
               showWeekend={showWeekend}
+              dimPastDays={dimPastDays}
               dark={dark}
               onChangeVariant={(v) => { setVariant(v); localStorage.setItem('wl_variant', v) }}
               onToggleWeekend={handleToggleWeekend}
@@ -701,8 +717,10 @@ export default function App() {
           slotPrefs={slotPrefs}
           dark={dark}
           showWeekend={showWeekend}
+          dimPastDays={dimPastDays}
           onToggleDark={handleToggleDark}
           onToggleWeekend={handleToggleWeekend}
+          onToggleDimPastDays={handleToggleDimPastDays}
         />
       )}
     </DndContext>

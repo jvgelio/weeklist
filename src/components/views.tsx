@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -13,6 +13,69 @@ import { IconArrow, TaskRow, InlineAdd } from './task-components'
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '../hooks/use-tags'
 
 const TODAY = new Date()
+
+// ---- DayNavBar ----
+
+interface DayNavBarProps {
+  days: Date[]
+  showWeekend: boolean
+  accent: string
+}
+
+function DayNavBar({ days, showWeekend, accent }: DayNavBarProps) {
+  const visible = showWeekend ? days : days.filter(d => d.getDay() !== 0 && d.getDay() !== 6)
+  
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 16,
+      borderBottom: '1px solid var(--line)', paddingBottom: 12, marginBottom: 24,
+      overflowX: 'auto', scrollbarWidth: 'none',
+      position: 'sticky', top: 0, zIndex: 10,
+      background: 'var(--bg)', paddingTop: 12,
+    }}>
+      {visible.map(d => {
+        const isToday = sameDay(d, TODAY)
+        return (
+          <button
+            key={isoDate(d)}
+            onClick={() => {
+              const el = document.getElementById(`day-${isoDate(d)}`)
+              if (el) {
+                // Smooth scroll to the element
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+            }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+              border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px',
+              minWidth: 44, borderRadius: 8,
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-sunken)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <span style={{
+              fontSize: 11, fontWeight: 600,
+              color: isToday ? accent : 'var(--ink-mute)',
+            }}>
+              {DAY_NAMES_PT[d.getDay()]}
+            </span>
+            <span style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 28, height: 28, borderRadius: '50%',
+              fontSize: 14, fontWeight: isToday ? 700 : 500,
+              background: isToday ? accent : 'transparent',
+              color: isToday ? '#fff' : 'var(--ink)',
+            }}>
+              {d.getDate()}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 
 // ---- ViewModeToggle ----
 
@@ -234,6 +297,7 @@ interface WeekViewProps {
   tasks: TaskMap
   variant: Variant
   showWeekend: boolean
+  dimPastDays: boolean
   dark: boolean
   accent: string
   onOpenTask: (task: Task) => void
@@ -255,7 +319,7 @@ interface WeekViewProps {
 }
 
 export function WeekView({
-  weekStart, tasks, variant, showWeekend, dark,
+  weekStart, tasks, variant, showWeekend, dimPastDays, dark,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, onMoveTask,
   onPrevWeek, onNextWeek, onToday,
@@ -264,6 +328,19 @@ export function WeekView({
   slotPrefs,
   isMobile = false,
 }: WeekViewProps) {
+  // Auto-scroll to today
+  useEffect(() => {
+    if (variant === 'quiet') {
+      const todayEl = document.getElementById(`day-${isoDate(TODAY)}`)
+      if (todayEl) {
+        // Use a slight timeout to ensure render is complete
+        setTimeout(() => {
+          todayEl.scrollIntoView({ behavior: 'auto', block: 'start' })
+        }, 50)
+      }
+    }
+  }, [variant, weekStart])
+
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
   const visibleDays = useMemo(
     () => days.filter((d) => d.getDay() !== 0 && d.getDay() !== 6),
@@ -291,11 +368,83 @@ export function WeekView({
   const dayProps = {
     accent,
     slotPrefs,
+    dimPastDays,
     onOpenTask,
     onAddTask,
     onUpdateTask,
     onDeleteTask,
   }
+
+  const renderHeader = () => (
+    <div style={{
+      padding: isMobile ? '64px 16px 12px' : (isColumns ? '24px 24px 16px' : '24px 32px 16px'),
+      flexShrink: 0,
+    }}>
+      <header style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 20, marginBottom: 0,
+        flexWrap: 'nowrap',
+      }}>
+        {/* Title Area */}
+        <div style={isMobile ? { flex: 1 } : (isColumns ? { flex: 1 } : { flex: 1, paddingLeft: 'max(0px, calc(50% - 400px))' })}>
+          <div>
+            <div style={{
+              fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 5,
+            }}>Semana</div>
+            <h1 style={{
+              margin: 0,
+              fontFamily: (isColumns && !isMobile) ? 'var(--font-display)' : 'inherit',
+              fontSize: isMobile ? 18 : (isColumns ? 32 : 22),
+              fontWeight: isMobile ? 600 : (isColumns ? 400 : 600),
+              fontStyle: (isColumns && !isMobile) ? 'italic' : 'normal',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+              color: 'var(--ink)',
+              whiteSpace: 'nowrap',
+            }}>
+              {rangeLabel}
+            </h1>
+          </div>
+        </div>
+
+        {/* Toggles Area */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <button className="ghost-btn" onClick={onPrevWeek} title="Semana anterior (←)">
+            <IconArrow dir="left" />
+          </button>
+          <button className="ghost-btn" onClick={onToday} style={{
+            background: 'var(--bg-sunken)', fontWeight: 600, fontSize: 12,
+          }}>
+            Hoje
+          </button>
+          <button className="ghost-btn" onClick={onNextWeek} title="Próxima semana (→)">
+            <IconArrow dir="right" />
+          </button>
+          {!isMobile && (
+            <>
+              <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+              <button className="ghost-btn" onClick={onToggleWeekend} style={{ fontSize: 11, fontWeight: 600 }}>
+                {showWeekend ? 'Ocultar FDS' : 'Mostrar FDS'}
+              </button>
+              <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+              <ViewModeToggle variant={variant} onChange={onChangeVariant} />
+            </>
+          )}
+        </div>
+      </header>
+
+      {isCurrentWeek && (
+        <div style={isColumns ? {} : { width: '100%', maxWidth: 800, margin: '14px auto 0' }}>
+          <OverdueBanner
+            tasks={overdueTasks}
+            onPullOne={onPullOneOverdue}
+            onPullAll={onPullAllOverdue}
+          />
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <motion.div
@@ -304,140 +453,74 @@ export function WeekView({
       variants={layoutVariants}
       style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      {/* Header */}
-      <div style={{
-        padding: isMobile ? '64px 16px 12px' : (isColumns ? '24px 24px 16px' : '24px 32px 16px'),
-        flexShrink: 0,
-      }}>
-        <header style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 20, marginBottom: 0,
-          flexWrap: 'nowrap',
-        }}>
-          {/* Title Area */}
-          <div style={isMobile ? { flex: 1 } : (isColumns ? { flex: 1 } : { flex: 1, paddingRight: 320 })}>
-            <div style={(!isMobile && !isColumns) ? { width: '100%', maxWidth: 800, margin: '0 auto' } : {}}>
-              <div style={{
-                fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
-                textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 5,
-              }}>Semana</div>
-              <h1 style={{
-                margin: 0,
-                fontFamily: (isColumns && !isMobile) ? 'var(--font-display)' : 'inherit',
-                fontSize: isMobile ? 18 : (isColumns ? 32 : 22),
-                fontWeight: isMobile ? 600 : (isColumns ? 400 : 600),
-                fontStyle: (isColumns && !isMobile) ? 'italic' : 'normal',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-                color: 'var(--ink)',
-                whiteSpace: 'nowrap',
-              }}>
-                {rangeLabel}
-              </h1>
-            </div>
-          </div>
-
-          {/* Toggles Area */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <button className="ghost-btn" onClick={onPrevWeek} title="Semana anterior (←)">
-              <IconArrow dir="left" />
-            </button>
-            <button className="ghost-btn" onClick={onToday} style={{
-              background: 'var(--bg-sunken)', fontWeight: 600, fontSize: 12,
-            }}>
-              Hoje
-            </button>
-            <button className="ghost-btn" onClick={onNextWeek} title="Próxima semana (→)">
-              <IconArrow dir="right" />
-            </button>
-            {!isMobile && (
-              <>
-                <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
-                <button className="ghost-btn" onClick={onToggleWeekend} style={{ fontSize: 11, fontWeight: 600 }}>
-                  {showWeekend ? 'Ocultar FDS' : 'Mostrar FDS'}
-                </button>
-                <button className="ghost-btn" onClick={onToggleDark} style={{ fontSize: 11, fontWeight: 600 }}>
-                  {dark ? 'Claro' : 'Escuro'}
-                </button>
-                <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
-                <ViewModeToggle variant={variant} onChange={onChangeVariant} />
-              </>
-            )}
-          </div>
-        </header>
-
-        {isCurrentWeek && (
-          <div style={isColumns ? {} : { width: '100%', maxWidth: 800, margin: '14px auto 0', paddingRight: 320 }}>
-            <OverdueBanner
-              tasks={overdueTasks}
-              onPullOne={onPullOneOverdue}
-              onPullAll={onPullAllOverdue}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Body */}
       {isColumns ? (
-        <motion.div style={{ flex: 1, minHeight: 0, padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <motion.div style={{ flex: 1, display: 'flex', gap: 10, minHeight: 0 }}>
-            {visibleDays.map(d => {
-              const key = isoDate(d)
-              return (
-                <DayColumn
-                  key={key} date={d}
-                  tasks={tasks[key] ?? []}
-                  isToday={sameDay(d, TODAY)}
-                  isWeekend={false}
-                  compact={false}
-                  {...dayProps}
-                />
-              )
-            })}
-          </motion.div>
-          {showWeekend && (
-            <WeekendColumnsStrip
-              days={weekend} tasks={tasks}
-              {...dayProps}
-            />
-          )}
-        </motion.div>
-      ) : (
-        <motion.div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          <motion.div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }}>
-            <motion.div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: variant === 'quiet' ? 12 : 0,
-              maxWidth: 800,
-              margin: '0 auto',
-            }}>
+        <>
+          {renderHeader()}
+          <div style={{ flex: 1, minHeight: 0, padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ flex: 1, display: 'flex', gap: 10, minHeight: 0 }}>
               {visibleDays.map(d => {
                 const key = isoDate(d)
                 return (
-                  <DayRow
+                  <DayColumn
                     key={key} date={d}
                     tasks={tasks[key] ?? []}
-                    variant={variant}
                     isToday={sameDay(d, TODAY)}
                     isWeekend={false}
+                    compact={false}
                     {...dayProps}
                   />
                 )
               })}
-            </motion.div>
+            </div>
             {showWeekend && (
-              <WeekendStrip
-                days={weekend} tasks={tasks} variant={variant}
+              <WeekendColumnsStrip
+                days={weekend} tasks={tasks}
                 {...dayProps}
               />
             )}
-          </motion.div>
+          </div>
+          <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
+        </>
+      ) : (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {renderHeader()}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }} id="list-scroll-container">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: variant === 'quiet' ? 12 : 0,
+                maxWidth: 800,
+                margin: '0 auto',
+              }}>
+                <DayNavBar days={days} showWeekend={showWeekend} accent={accent} />
+                
+                {visibleDays.map(d => {
+                  const key = isoDate(d)
+                  return (
+                    <div key={key} id={`day-${key}`} style={{ scrollMarginTop: 80 }}>
+                      <DayRow
+                        date={d}
+                        tasks={tasks[key] ?? []}
+                        variant={variant}
+                        isToday={sameDay(d, TODAY)}
+                        isWeekend={false}
+                        {...dayProps}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+              {showWeekend && (
+                <WeekendStrip
+                  days={weekend} tasks={tasks} variant={variant}
+                  {...dayProps}
+                />
+              )}
+            </div>
+          </div>
           <WeeklistPanel bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
-        </motion.div>
-      )}
-      {isColumns && (
-        <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
+        </div>
       )}
     </motion.div>
   )

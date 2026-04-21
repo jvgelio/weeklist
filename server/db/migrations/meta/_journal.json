@@ -43,6 +43,13 @@
       "when": 1776756339165,
       "tag": "0005_silent_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776798159388,
+      "tag": "0006_youthful_the_call",
+      "breakpoints": true
     }
   ]
 }

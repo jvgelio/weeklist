@@ -12,6 +12,7 @@ export const users = pgTable('users', {
   slotEve: boolean('slot_eve').default(false).notNull(),
   darkMode:    boolean('dark_mode').default(false).notNull(),
   showWeekend: boolean('show_weekend').default(true).notNull(),
+  dimPastDays: boolean('dim_past_days').default(true).notNull(),
 })
 
 export const sessions = pgTable('sessions', {

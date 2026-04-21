@@ -50,10 +50,11 @@ settingsRouter.patch('/display', async (c) => {
   const user = await getAuthUser(c)
   if (!user) return c.json({ error: 'Unauthorized' }, 401)
 
-  const body = await c.req.json<{ darkMode?: boolean; showWeekend?: boolean }>()
+  const body = await c.req.json<{ darkMode?: boolean; showWeekend?: boolean; dimPastDays?: boolean }>()
   const updates: Record<string, boolean> = {}
   if (body.darkMode !== undefined) updates.darkMode = Boolean(body.darkMode)
   if (body.showWeekend !== undefined) updates.showWeekend = Boolean(body.showWeekend)
+  if (body.dimPastDays !== undefined) updates.dimPastDays = Boolean(body.dimPastDays)
 
   const [updatedUser] = await db.update(users)
     .set(updates)

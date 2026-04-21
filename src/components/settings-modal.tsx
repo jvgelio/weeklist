@@ -8,11 +8,16 @@ interface SettingsModalProps {
   slotPrefs: SlotPrefs
   dark?: boolean
   showWeekend?: boolean
+  dimPastDays?: boolean
   onToggleDark?: () => void
   onToggleWeekend?: () => void
+  onToggleDimPastDays?: () => void
 }
 
-export function SettingsModal({ open, onClose, slotPrefs, dark, showWeekend, onToggleDark, onToggleWeekend }: SettingsModalProps) {
+export function SettingsModal({
+  open, onClose, slotPrefs, dark, showWeekend, dimPastDays,
+  onToggleDark, onToggleWeekend, onToggleDimPastDays
+}: SettingsModalProps) {
   const [prefs, setPrefs] = useState<SlotPrefs>(slotPrefs)
   const updateSlots = useUpdateSlotPrefs()
 
@@ -49,7 +54,7 @@ export function SettingsModal({ open, onClose, slotPrefs, dark, showWeekend, onT
           ))}
         </div>
 
-        {(onToggleDark !== undefined || onToggleWeekend !== undefined) && (
+        {(onToggleDark !== undefined || onToggleWeekend !== undefined || onToggleDimPastDays !== undefined) && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink-mute)', marginBottom: 10 }}>
               Visualização
@@ -64,6 +69,12 @@ export function SettingsModal({ open, onClose, slotPrefs, dark, showWeekend, onT
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', cursor: 'pointer', fontSize: 14, color: 'var(--ink)' }}>
                 <input type="checkbox" checked={showWeekend ?? true} onChange={onToggleWeekend} />
                 Mostrar fim de semana
+              </label>
+            )}
+            {onToggleDimPastDays !== undefined && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', cursor: 'pointer', fontSize: 14, color: 'var(--ink)' }}>
+                <input type="checkbox" checked={dimPastDays ?? true} onChange={onToggleDimPastDays} />
+                Esmaecer dias passados
               </label>
             )}
           </div>
