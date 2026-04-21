@@ -232,6 +232,7 @@ function DayColumnComponent({
   const eveTasks = useMemo(() => tasks.filter(t => getDisplaySlot(t.slot, slotPrefs) === 'eve'), [tasks, slotPrefs])
   const completed = useMemo(() => tasks.filter((t) => t.done).length, [tasks])
   const total = tasks.length
+  const isPast = useMemo(() => isPastDay(date), [date])
 
   const pmFlexGrow = slotPrefs.eve ? '0 0 auto' : '1 0 auto'
   const eveFlexGrow = '1 0 auto'
@@ -252,15 +253,15 @@ function DayColumnComponent({
         flex: compact ? '0 0 240px' : '1 1 0',
         minWidth: compact ? 240 : 200,
         display: 'flex', flexDirection: 'column',
-        background: 'transparent',
-        borderRadius: 0,
+        background: isPast ? 'var(--bg-sunken)' : 'transparent',
+        borderRadius: isPast ? 12 : 0,
         boxShadow: 'none',
         borderRight: '1px dashed var(--line)',
-        paddingRight: 16,
+        padding: isPast ? '0 16px 0 8px' : '0 16px 0 0',
         marginRight: 16,
-        transition: 'border 120ms ease, background 120ms ease',
+        transition: 'border 120ms ease, background 120ms ease, opacity 120ms ease',
         overflow: 'hidden',
-        opacity: isWeekend && !isToday ? 0.88 : 1,
+        opacity: isPast ? 0.8 : (isWeekend && !isToday ? 0.88 : 1),
       }}
     >
       {/* Column header */}
