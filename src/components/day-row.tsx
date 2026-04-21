@@ -65,8 +65,6 @@ function DayRowComponent({
   return (
     <motion.section
       variants={columnVariants}
-      initial="hidden"
-      animate="visible"
       style={{
         padding: '14px 16px',
         borderRadius: 14,
@@ -236,8 +234,6 @@ function DayColumnComponent({
   return (
     <motion.section
       variants={columnVariants}
-      initial="hidden"
-      animate="visible"
       style={{
         flex: compact ? '0 0 240px' : '1 1 0',
         minWidth: compact ? 240 : 200,
@@ -519,7 +515,8 @@ function WeekendDayCell({
   }
 
   return (
-    <div
+    <motion.div
+      variants={columnVariants}
       style={{
         padding: '14px 16px', borderRadius: 14,
         background: 'var(--bg-sunken)',
@@ -594,7 +591,7 @@ function WeekendDayCell({
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
