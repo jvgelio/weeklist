@@ -22,7 +22,14 @@ export interface Task {
   subtasks: Subtask[]
 }
 
-export type View = 'week' | 'inbox'
+export interface Tag {
+  id: string
+  name: string
+  color: string
+  task_count: number
+}
+
+export type View = 'week' | 'inbox' | 'tags'
 export type Variant = 'quiet' | 'columns'
 export type Slot = 'am' | 'pm'
 export type Priority = 'high' | 'med' | 'low'

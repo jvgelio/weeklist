@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import type { Task, TaskMap, Priority } from '../lib/types'
-import { TAGS, PRIORITY_COLORS, DAY_NAMES_PT, isoDate, addDays } from '../lib/constants'
+import { PRIORITY_COLORS, DAY_NAMES_PT, isoDate, addDays } from '../lib/constants'
+import { useTags } from '../hooks/use-tags'
 import { parseNL } from '../lib/nl-parse'
 import { HighlightedInput } from './highlighted-input'
 
@@ -64,6 +65,7 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
   const [pulsePriority, setPulsePriority] = useState(false)
   const [pulseTags, setPulseTags]         = useState<Set<string>>(new Set())
 
+  const { data: allTags = [] } = useTags()
   const inputRef  = useRef<HTMLInputElement>(null)
   const dateChips = buildDateChips(weekStart)
 
@@ -258,12 +260,12 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
 
           {/* Tag chips */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {Object.entries(TAGS).map(([key, tag]) => {
-              const active = tags.includes(key)
+            {allTags.map((tag) => {
+              const active = tags.includes(tag.id)
               return (
                 <button
-                  key={key}
-                  onClick={() => toggleTag(key)}
+                  key={tag.id}
+                  onClick={() => toggleTag(tag.id)}
                   style={{
                     background: active ? `${tag.color}22` : 'var(--bg-sunken)',
                     border: active ? `1px solid ${tag.color}66` : '1px solid var(--line)',
@@ -272,17 +274,17 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
                     fontSize: 12,
                     color: active ? tag.color : 'var(--ink-soft)',
                     cursor: 'pointer',
-                    boxShadow: pulseTags.has(key) && active ? `0 0 0 2px ${tag.color}` : 'none',
+                    boxShadow: pulseTags.has(tag.id) && active ? `0 0 0 2px ${tag.color}` : 'none',
                     transition: 'box-shadow 150ms ease',
                   }}
                 >
-                  # {tag.label}
+                  # {tag.name}
                 </button>
               )
             })}
-            {/* NL-detected tags not in predefined list */}
+            {/* NL-detected tags not in known tag list */}
             {parsed.tags
-              .filter((t) => !(t in TAGS))
+              .filter((t) => !allTags.some((tag) => tag.id === t))
               .map((t) => (
                 <span
                   key={t}

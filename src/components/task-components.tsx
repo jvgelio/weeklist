@@ -6,7 +6,8 @@ import {
   Trash2, ArrowRight, Inbox, Clock, CalendarDays, Sun, Moon,
   ExternalLink,
 } from 'lucide-react'
-import { TAGS, startOfWeek } from '../lib/constants'
+import { startOfWeek } from '../lib/constants'
+import { useTags } from '../hooks/use-tags'
 import type { Task } from '../lib/types'
 import { parseNL, type NLParsedData, type NLToken, type TokenKind } from '../lib/nl-parse'
 import { HighlightedInput } from './highlighted-input'
@@ -79,7 +80,8 @@ export const Icon = {
 // ---- TagChip ----
 
 export function TagChip({ tag }: { tag: string }) {
-  const t = TAGS[tag]
+  const { data: allTags = [] } = useTags()
+  const t = allTags.find((t) => t.id === tag)
   if (!t) return null
   return (
     <span style={{
@@ -93,7 +95,7 @@ export function TagChip({ tag }: { tag: string }) {
       letterSpacing: '-0.01em',
     }}>
       <span style={{ width: 6, height: 6, borderRadius: 9999, background: t.color, flexShrink: 0 }}/>
-      {t.label}
+      {t.name}
     </span>
   )
 }
@@ -101,11 +103,12 @@ export function TagChip({ tag }: { tag: string }) {
 // ---- TagDot ----
 
 export function TagDot({ tag }: { tag: string }) {
-  const t = TAGS[tag]
+  const { data: allTags = [] } = useTags()
+  const t = allTags.find((t) => t.id === tag)
   if (!t) return null
   return (
     <span
-      title={t.label}
+      title={t.name}
       style={{
         display: 'inline-block',
         width: 8, height: 8, borderRadius: 9999,
@@ -119,7 +122,8 @@ export function TagDot({ tag }: { tag: string }) {
 // ---- TagHash ----
 
 export function TagHash({ tag }: { tag: string }) {
-  const t = TAGS[tag]
+  const { data: allTags = [] } = useTags()
+  const t = allTags.find((t) => t.id === tag)
   if (!t) return null
   return (
     <span style={{
@@ -127,7 +131,7 @@ export function TagHash({ tag }: { tag: string }) {
       color: t.color,
       letterSpacing: '-0.01em',
     }}>
-      #{t.label}
+      #{t.name}
     </span>
   )
 }
