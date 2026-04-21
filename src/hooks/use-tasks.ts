@@ -85,6 +85,8 @@ export function useAuth() {
           slotAm: boolean
           slotPm: boolean
           slotEve: boolean
+          darkMode: boolean
+          showWeekend: boolean
         } | null
       }>
     },
@@ -124,6 +126,27 @@ export function useUpdateSlotPrefs() {
         user: { ...old?.user, ...data.user },
       }))
       qc.invalidateQueries({ queryKey: ['tasks', 'week'] })
+    },
+  })
+}
+
+export function useUpdateDisplayPrefs() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (prefs: { darkMode?: boolean; showWeekend?: boolean }) => {
+      const res = await fetch('/api/settings/display', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(prefs),
+      })
+      if (!res.ok) throw new Error('Failed to update display prefs')
+      return res.json() as Promise<{ user: { darkMode: boolean; showWeekend: boolean } }>
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(['auth', 'me'], (old: any) => ({
+        ...old,
+        user: { ...old?.user, ...data.user },
+      }))
     },
   })
 }
