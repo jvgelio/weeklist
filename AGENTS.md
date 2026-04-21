@@ -117,6 +117,12 @@ npm run dev          # Vite (5173) + Hono (3000) em paralelo
 npm run build        # Vite build → dist/
 npm start            # Produção: Hono serve dist/ + API
 
+# --- CLI Weeklist ---
+# Localização: ./cli/index.js
+# Uso: node cli/index.js <comando> (ou 'week' se instalado globalmente)
+# Comandos: login, list, add, done, rm
+# Exemplo: node cli/index.js list tomorrow
+
 npm run db:generate  # drizzle-kit generate → gera SQL em server/db/migrations/
 npm run db:migrate   # drizzle-kit migrate  → aplica migrations no banco
 npm run db:studio    # drizzle-kit studio   → GUI do banco no browser

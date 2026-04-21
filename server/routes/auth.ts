@@ -14,17 +14,33 @@ const clientSecret = process.env.GOOGLE_CLIENT_SECRET!
 const redirectUri = `${process.env.PUBLIC_URL || 'http://localhost:5173'}/api/auth/google/callback`
 
 authRouter.get('/google', (c) => {
+  const cliPort = c.req.query('cli_port')
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   url.searchParams.set('client_id', clientId)
   url.searchParams.set('redirect_uri', redirectUri)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('scope', 'openid email profile')
   url.searchParams.set('access_type', 'online')
+  
+  if (cliPort) {
+    url.searchParams.set('state', JSON.stringify({ cli_port: cliPort }))
+  }
+  
   return c.redirect(url.toString())
 })
 
 authRouter.get('/google/callback', async (c) => {
   const code = c.req.query('code')
+  const stateStr = c.req.query('state')
+  let cliPort: string | null = null
+
+  if (stateStr) {
+    try {
+      const state = JSON.parse(stateStr)
+      cliPort = state.cli_port
+    } catch (e) {}
+  }
+
   if (!code) return c.json({ error: 'No code provided' }, 400)
 
   // 1. Exchange code for tokens
@@ -97,6 +113,10 @@ authRouter.get('/google/callback', async (c) => {
     sameSite: 'Lax',
     expires: expiresAt,
   })
+
+  if (cliPort) {
+    return c.redirect(`http://localhost:${cliPort}?session_id=${sessionId}`)
+  }
 
   // Redirect to app
   return c.redirect('/')
