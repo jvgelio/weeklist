@@ -37,6 +37,7 @@ import { TaskRow } from './task-components'
 import { QuickAdd, type QuickAddCreateParams } from './quick-add'
 import { Login } from './login'
 import { SettingsModal } from './settings-modal'
+import { MobileTabBar } from './mobile-tab-bar'
 import type { SlotPrefs } from '../lib/types'
 import { firstEnabledSlot } from '../lib/slot-utils'
 
@@ -615,6 +616,7 @@ export default function App() {
               overdueTasks={overdueTasks}
               onPullOneOverdue={handlePullOneOverdue}
               onPullAllOverdue={handlePullAllOverdue}
+              isMobile={isMobile}
               {...sharedDayProps}
             />
           )}
@@ -634,6 +636,15 @@ export default function App() {
 
           {view === 'tags' && <TagsView />}
         </main>
+
+        {isMobile && (
+          <MobileTabBar
+            view={view}
+            onViewChange={setView}
+            inboxCount={inboxTasks.length}
+            accent={accent}
+          />
+        )}
 
         <DragOverlay>
           {draggingTask && (

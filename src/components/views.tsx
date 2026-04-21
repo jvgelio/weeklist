@@ -240,6 +240,7 @@ interface WeekViewProps {
   overdueTasks: Task[]
   onPullOneOverdue: (id: string) => void
   onPullAllOverdue: () => void
+  isMobile?: boolean
 }
 
 export function WeekView({
@@ -250,6 +251,7 @@ export function WeekView({
   onChangeVariant, onToggleWeekend, onToggleDark,
   overdueTasks, onPullOneOverdue, onPullAllOverdue,
   slotPrefs,
+  isMobile = false,
 }: WeekViewProps) {
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
   const visibleDays = useMemo(
@@ -268,7 +270,7 @@ export function WeekView({
     : `${weekStart.getDate()} ${MONTH_PT[weekStart.getMonth()]} – ${end.getDate()} ${MONTH_PT[end.getMonth()]} ${end.getFullYear()}`
 
   const isColumns = variant === 'columns'
-  const sidePad = isColumns ? '0 24px 24px' : '0 32px 120px'
+  const sidePad = isMobile ? '0 16px 80px' : (isColumns ? '0 24px 24px' : '0 32px 120px')
 
   const weeklistKey = `weeklist-${isoDate(weekStart)}`
   const weeklistTasks = useMemo(() => tasks[weeklistKey] ?? [], [tasks, weeklistKey])
@@ -288,7 +290,7 @@ export function WeekView({
     <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{
-        padding: isColumns ? '24px 24px 16px' : '24px 32px 16px',
+        padding: isMobile ? '64px 16px 12px' : (isColumns ? '24px 24px 16px' : '24px 32px 16px'),
         flexShrink: 0,
       }}>
         <header style={{
@@ -297,20 +299,20 @@ export function WeekView({
           flexWrap: 'nowrap',
         }}>
           {/* Title Area */}
-          <div style={isColumns ? { flex: 1 } : { flex: 1, paddingRight: 320 }}>
-            <div style={isColumns ? {} : { width: '100%', maxWidth: 800, margin: '0 auto' }}>
+          <div style={isMobile ? { flex: 1 } : (isColumns ? { flex: 1 } : { flex: 1, paddingRight: 320 })}>
+            <div style={(!isMobile && !isColumns) ? { width: '100%', maxWidth: 800, margin: '0 auto' } : {}}>
               <div style={{
                 fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
                 textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 5,
               }}>Semana</div>
               <h1 style={{
                 margin: 0,
-                fontFamily: isColumns ? 'var(--font-display)' : 'inherit',
-                fontSize: isColumns ? 32 : 22,
-                fontWeight: isColumns ? 400 : 600,
-                fontStyle: isColumns ? 'italic' : 'normal',
+                fontFamily: (isColumns && !isMobile) ? 'var(--font-display)' : 'inherit',
+                fontSize: isMobile ? 18 : (isColumns ? 32 : 22),
+                fontWeight: isMobile ? 600 : (isColumns ? 400 : 600),
+                fontStyle: (isColumns && !isMobile) ? 'italic' : 'normal',
                 letterSpacing: '-0.02em',
-                lineHeight: isColumns ? 1.1 : 1.2,
+                lineHeight: 1.2,
                 color: 'var(--ink)',
                 whiteSpace: 'nowrap',
               }}>
@@ -332,15 +334,19 @@ export function WeekView({
             <button className="ghost-btn" onClick={onNextWeek} title="Próxima semana (→)">
               <IconArrow dir="right" />
             </button>
-            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
-            <button className="ghost-btn" onClick={onToggleWeekend} style={{ fontSize: 11, fontWeight: 600 }}>
-              {showWeekend ? 'Ocultar FDS' : 'Mostrar FDS'}
-            </button>
-            <button className="ghost-btn" onClick={onToggleDark} style={{ fontSize: 11, fontWeight: 600 }}>
-              {dark ? 'Claro' : 'Escuro'}
-            </button>
-            <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
-            <ViewModeToggle variant={variant} onChange={onChangeVariant} />
+            {!isMobile && (
+              <>
+                <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+                <button className="ghost-btn" onClick={onToggleWeekend} style={{ fontSize: 11, fontWeight: 600 }}>
+                  {showWeekend ? 'Ocultar FDS' : 'Mostrar FDS'}
+                </button>
+                <button className="ghost-btn" onClick={onToggleDark} style={{ fontSize: 11, fontWeight: 600 }}>
+                  {dark ? 'Claro' : 'Escuro'}
+                </button>
+                <span style={{ width: 1, height: 18, background: 'var(--line)', margin: '0 4px' }} />
+                <ViewModeToggle variant={variant} onChange={onChangeVariant} />
+              </>
+            )}
           </div>
         </header>
 

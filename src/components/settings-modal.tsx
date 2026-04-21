@@ -6,9 +6,13 @@ interface SettingsModalProps {
   open: boolean
   onClose: () => void
   slotPrefs: SlotPrefs
+  dark?: boolean
+  showWeekend?: boolean
+  onToggleDark?: () => void
+  onToggleWeekend?: () => void
 }
 
-export function SettingsModal({ open, onClose, slotPrefs }: SettingsModalProps) {
+export function SettingsModal({ open, onClose, slotPrefs, dark, showWeekend, onToggleDark, onToggleWeekend }: SettingsModalProps) {
   const [prefs, setPrefs] = useState<SlotPrefs>(slotPrefs)
   const updateSlots = useUpdateSlotPrefs()
 
@@ -24,7 +28,7 @@ export function SettingsModal({ open, onClose, slotPrefs }: SettingsModalProps) 
       onClick={onClose}
     >
       <div
-        style={{ background: 'var(--bg-raised)', borderRadius: 14, padding: 24, minWidth: 320, boxShadow: 'var(--shadow-pop)' }}
+        style={{ background: 'var(--bg-raised)', borderRadius: 14, padding: 24, minWidth: 320, maxWidth: 'calc(100vw - 32px)', width: '100%', boxShadow: 'var(--shadow-pop)' }}
         onClick={e => e.stopPropagation()}
       >
         <h2 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Configurações</h2>
@@ -44,6 +48,26 @@ export function SettingsModal({ open, onClose, slotPrefs }: SettingsModalProps) 
             </label>
           ))}
         </div>
+
+        {(onToggleDark !== undefined || onToggleWeekend !== undefined) && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink-mute)', marginBottom: 10 }}>
+              Visualização
+            </div>
+            {onToggleDark !== undefined && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', cursor: 'pointer', fontSize: 14, color: 'var(--ink)' }}>
+                <input type="checkbox" checked={dark ?? false} onChange={onToggleDark} />
+                Modo escuro
+              </label>
+            )}
+            {onToggleWeekend !== undefined && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', cursor: 'pointer', fontSize: 14, color: 'var(--ink)' }}>
+                <input type="checkbox" checked={showWeekend ?? true} onChange={onToggleWeekend} />
+                Mostrar fim de semana
+              </label>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button
