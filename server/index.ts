@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
+import { authRouter, getAuthUser } from './routes/auth.js'
 import { tasksRouter } from './routes/tasks.js'
 import { tagsRouter } from './routes/tags.js'
 
@@ -11,6 +12,24 @@ app.use('/api/*', async (c, next) => {
   await next()
   const durationMs = performance.now() - startedAt
   c.header('Server-Timing', `app;dur=${durationMs.toFixed(1)}`)
+})
+
+// Auth routes (unprotected)
+app.route('/api/auth', authRouter)
+
+// Auth Middleware for protected routes
+app.use('/api/tasks/*', async (c, next) => {
+  const user = await getAuthUser(c)
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  c.set('user', user)
+  await next()
+})
+
+app.use('/api/tags/*', async (c, next) => {
+  const user = await getAuthUser(c)
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  c.set('user', user)
+  await next()
 })
 
 // API routes

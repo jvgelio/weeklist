@@ -204,6 +204,7 @@ export interface SidebarProps {
   accent: string
   collapsed: boolean
   onToggleCollapsed: () => void
+  user: { name: string, email: string, avatarUrl: string } | null
 }
 
 export function Sidebar({
@@ -212,6 +213,7 @@ export function Sidebar({
   taskMap, showWeekend,
   accent,
   collapsed, onToggleCollapsed,
+  user,
 }: SidebarProps) {
   const today = new Date()
   const currentMonday = startOfWeek(today, 1)
@@ -369,16 +371,21 @@ export function Sidebar({
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <img
-              src="https://github.com/shadcn.png"
-              alt="shadcn"
-              style={{
-                width: 24, height: 24, borderRadius: 6, objectFit: 'cover', flexShrink: 0
-              }}
-            />
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name}
+                referrerPolicy="no-referrer"
+                style={{
+                  width: 24, height: 24, borderRadius: 6, objectFit: 'cover', flexShrink: 0
+                }}
+              />
+            ) : (
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: 'var(--line)', flexShrink: 0 }} />
+            )}
             {!collapsed && (
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                shadcn
+                {user?.email ? user.email.split('@')[0] : 'Usuário'}
               </span>
             )}
           </div>

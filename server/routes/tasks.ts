@@ -7,8 +7,8 @@ import { tasks, subtasks } from '../db/schema.js'
 export const tasksRouter = new Hono()
 
 // Helper: fetch a single task with its subtasks
-async function getTaskWithSubtasks(id: string) {
-  const [task] = await db.select().from(tasks).where(eq(tasks.id, id))
+async function getTaskWithSubtasks(id: string, userId: string) {
+  const [task] = await db.select().from(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
   if (!task) return null
   const subs = await db.select().from(subtasks)
     .where(eq(subtasks.taskId, id))
@@ -42,6 +42,7 @@ async function getTasksWithSubtasks(taskList: typeof tasks.$inferSelect[]) {
 
 // GET /api/tasks
 tasksRouter.get('/', async (c) => {
+  const user = c.get('user')
   const from = c.req.query('from')
   const to = c.req.query('to')
   const bucket = c.req.query('bucket')
@@ -64,6 +65,7 @@ tasksRouter.get('/', async (c) => {
     }
     taskList = await db.select().from(tasks)
       .where(and(
+        eq(tasks.userId, user.id),
         lt(tasks.bucketKey, overdueBefore),
         eq(tasks.done, false),
         sql`${tasks.bucketKey} ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'`,
@@ -76,19 +78,26 @@ tasksRouter.get('/', async (c) => {
     const [datedTasks, weeklistTasks] = await Promise.all([
       db.select().from(tasks)
         .where(and(
+          eq(tasks.userId, user.id),
           gte(tasks.bucketKey, from),
           lte(tasks.bucketKey, to),
         ))
         .orderBy(tasks.bucketKey, tasks.position),
       db.select().from(tasks)
-        .where(eq(tasks.bucketKey, `weeklist-${from}`))
+        .where(and(
+          eq(tasks.userId, user.id),
+          eq(tasks.bucketKey, `weeklist-${from}`)
+        ))
         .orderBy(tasks.position),
     ])
 
     taskList = [...datedTasks, ...weeklistTasks]
   } else if (bucket) {
     taskList = await db.select().from(tasks)
-      .where(eq(tasks.bucketKey, bucket))
+      .where(and(
+        eq(tasks.userId, user.id),
+        eq(tasks.bucketKey, bucket)
+      ))
       .orderBy(tasks.position)
   } else {
     return c.json({ error: 'Provide either ?from=&to= or ?bucket=' }, 400)
@@ -104,8 +113,9 @@ tasksRouter.get('/', async (c) => {
 
 // GET /api/tasks/:id
 tasksRouter.get('/:id', async (c) => {
+  const user = c.get('user')
   const id = c.req.param('id')
-  const task = await getTaskWithSubtasks(id)
+  const task = await getTaskWithSubtasks(id, user.id)
   if (!task) {
     return c.json({ error: 'Task not found' }, 404)
   }
@@ -114,6 +124,7 @@ tasksRouter.get('/:id', async (c) => {
 
 // POST /api/tasks
 tasksRouter.post('/', async (c) => {
+  const user = c.get('user')
   const body = await c.req.json<{
     title: string
     bucketKey: string
@@ -135,6 +146,7 @@ tasksRouter.post('/', async (c) => {
 
   await db.insert(tasks).values({
     id,
+    userId: user.id,
     title: body.title,
     bucketKey: body.bucketKey,
     slot: body.slot ?? null,
@@ -145,15 +157,16 @@ tasksRouter.post('/', async (c) => {
     updatedAt: now,
   })
 
-  const task = await getTaskWithSubtasks(id)
+  const task = await getTaskWithSubtasks(id, user.id)
   return c.json(task, 201)
 })
 
 // PATCH /api/tasks/:id
 tasksRouter.patch('/:id', async (c) => {
+  const user = c.get('user')
   const id = c.req.param('id')
 
-  const existing = await getTaskWithSubtasks(id)
+  const existing = await getTaskWithSubtasks(id, user.id)
   if (!existing) {
     return c.json({ error: 'Task not found' }, 404)
   }
@@ -179,17 +192,19 @@ tasksRouter.patch('/:id', async (c) => {
   if (body.recurring !== undefined) allowed.recurring = body.recurring
   if (body.tags !== undefined) allowed.tags = body.tags
   if (body.note !== undefined) allowed.note = body.note
-  await db.update(tasks).set({ ...allowed, updatedAt: new Date() }).where(eq(tasks.id, id))
+  
+  await db.update(tasks).set({ ...allowed, updatedAt: new Date() }).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
 
-  const updated = await getTaskWithSubtasks(id)
+  const updated = await getTaskWithSubtasks(id, user.id)
   return c.json(updated)
 })
 
 // PATCH /api/tasks/:id/move
 tasksRouter.patch('/:id/move', async (c) => {
+  const user = c.get('user')
   const id = c.req.param('id')
 
-  const existing = await getTaskWithSubtasks(id)
+  const existing = await getTaskWithSubtasks(id, user.id)
   if (!existing) {
     return c.json({ error: 'Task not found' }, 404)
   }
@@ -204,7 +219,7 @@ tasksRouter.patch('/:id/move', async (c) => {
 
   await db.transaction(async (tx) => {
     // Verify the task still exists inside the transaction
-    const [taskInTx] = await tx.select().from(tasks).where(eq(tasks.id, id))
+    const [taskInTx] = await tx.select().from(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
     if (!taskInTx) throw new Error('Task not found')
 
     const oldBucketKey = taskInTx.bucketKey
@@ -216,6 +231,7 @@ tasksRouter.patch('/:id/move', async (c) => {
         await tx.update(tasks)
           .set({ position: sql`${tasks.position} + 1` })
           .where(and(
+            eq(tasks.userId, user.id),
             eq(tasks.bucketKey, oldBucketKey),
             gte(tasks.position, newPosition),
             lt(tasks.position, oldPosition),
@@ -225,6 +241,7 @@ tasksRouter.patch('/:id/move', async (c) => {
         await tx.update(tasks)
           .set({ position: sql`${tasks.position} - 1` })
           .where(and(
+            eq(tasks.userId, user.id),
             eq(tasks.bucketKey, oldBucketKey),
             gt(tasks.position, oldPosition),
             lte(tasks.position, newPosition),
@@ -235,11 +252,16 @@ tasksRouter.patch('/:id/move', async (c) => {
       // cross-bucket: decrement old bucket after old position
       await tx.update(tasks)
         .set({ position: sql`${tasks.position} - 1` })
-        .where(and(eq(tasks.bucketKey, oldBucketKey), gt(tasks.position, oldPosition)))
+        .where(and(
+          eq(tasks.userId, user.id),
+          eq(tasks.bucketKey, oldBucketKey), 
+          gt(tasks.position, oldPosition)
+        ))
       // increment new bucket at and after new position (exclude moved task)
       await tx.update(tasks)
         .set({ position: sql`${tasks.position} + 1` })
         .where(and(
+          eq(tasks.userId, user.id),
           eq(tasks.bucketKey, newBucketKey),
           gte(tasks.position, newPosition),
           sql`${tasks.id} != ${id}`,
@@ -254,23 +276,24 @@ tasksRouter.patch('/:id/move', async (c) => {
         slot: newSlot !== undefined ? newSlot : taskInTx.slot,
         updatedAt: new Date()
       })
-      .where(eq(tasks.id, id))
+      .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
   })
 
-  const updated = await getTaskWithSubtasks(id)
+  const updated = await getTaskWithSubtasks(id, user.id)
   return c.json(updated)
 })
 
 // DELETE /api/tasks/:id
 tasksRouter.delete('/:id', async (c) => {
+  const user = c.get('user')
   const id = c.req.param('id')
 
-  const [existing] = await db.select().from(tasks).where(eq(tasks.id, id))
+  const [existing] = await db.select().from(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
   if (!existing) {
     return c.json({ error: 'Task not found' }, 404)
   }
 
-  await db.delete(tasks).where(eq(tasks.id, id))
+  await db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
 
   return c.body(null, 204)
 })

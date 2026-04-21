@@ -25,6 +25,7 @@ import {
   useDeleteTask,
   useMoveTask,
   useOverdueTasks,
+  useAuth,
   type ClientMutationTrace,
 } from '../hooks/use-tasks'
 import { Sidebar } from './sidebar'
@@ -32,6 +33,7 @@ import { WeekView, ListView, TagsView } from './views'
 import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
 import { QuickAdd, type QuickAddCreateParams } from './quick-add'
+import { Login } from './login'
 
 const TODAY = new Date()
 const TEXT_DEBOUNCE_MS = 300
@@ -82,6 +84,8 @@ function toUpdatePayload(current: Task, next: Task): MutableTaskPatch {
 }
 
 export default function App() {
+  const { data: authData, isLoading: authLoading } = useAuth()
+
   const [view, setView] = useState<View>('week')
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(TODAY, 1))
   const [showWeekend, setShowWeekend] = useState(() => {
@@ -150,6 +154,7 @@ export default function App() {
   }, [view])
 
   // Data queries
+  const isAuth = !!authData?.user
   const weekResult = useWeekTasks(weekStart)
   const inboxResult = useBucketTasks('__inbox')
   const taskDetailResult = useTaskDetail(editingTaskId)
@@ -171,6 +176,8 @@ export default function App() {
     [allTasks, editingTaskId],
   )
   const editingTask = taskDetailResult.data ?? editingListTask
+
+
 
   // Mutations
   const createTask = useCreateTask()
@@ -495,6 +502,14 @@ export default function App() {
     onDeleteTask: handleDeleteTask,
   }), [accent, handleDeleteTask, handleOpenTask, handleUpdateTask])
 
+  if (authLoading) {
+    return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--ink)' }}>Loading...</div>
+  }
+
+  if (!isAuth) {
+    return <Login />
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -511,6 +526,7 @@ export default function App() {
           accent={accent}
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((v) => !v)}
+          user={authData?.user ?? null}
         />
 
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>

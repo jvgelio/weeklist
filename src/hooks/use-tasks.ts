@@ -69,6 +69,33 @@ export const taskKeys = {
   overdue: (before: string) => ['tasks', 'overdue', before] as const,
 }
 
+// Auth hooks
+export function useAuth() {
+  return useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => {
+      const res = await fetch('/api/auth/me')
+      if (!res.ok) throw new Error('Auth failed')
+      return res.json() as Promise<{ user: { id: string, name: string, email: string, avatarUrl: string } | null }>
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+}
+
+export function useLogout() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    },
+    onSuccess: () => {
+      qc.setQueryData(['auth', 'me'], { user: null })
+      qc.clear() // clear all task caches
+    }
+  })
+}
+
 // Fetch tasks for a full week
 export function useWeekTasks(weekStart: Date) {
   const from = isoDate(weekStart)
