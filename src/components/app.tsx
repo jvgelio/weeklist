@@ -31,12 +31,11 @@ import {
 } from '../hooks/use-tasks'
 import { useIsMobile } from '../hooks/use-mobile'
 import { Sidebar } from './sidebar'
-import { WeekView, ListView, TagsView } from './views'
+import { WeekView, ListView, TagsView, SettingsView } from './views'
 import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
 import { QuickAdd, type QuickAddCreateParams } from './quick-add'
 import { Login } from './login'
-import { SettingsModal } from './settings-modal'
 import { MobileTabBar } from './mobile-tab-bar'
 import type { SlotPrefs } from '../lib/types'
 import { firstEnabledSlot } from '../lib/slot-utils'
@@ -119,7 +118,6 @@ export default function App() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draggingTask, setDraggingTask] = useState<Task | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const textTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -295,7 +293,7 @@ export default function App() {
     })
   }, [createTask, inboxTasks.length])
 
-  const handleQuickAdd = useCallback(({ title, bucketKey, priority, tags }: QuickAddCreateParams) => {
+  const handleQuickAdd = useCallback(({ title, bucketKey, priority, recurring, tags }: QuickAddCreateParams) => {
     const tasksInBucket = bucketKey === '__inbox'
       ? inboxTasks
       : (weekTasks[bucketKey] ?? [])
@@ -305,10 +303,11 @@ export default function App() {
       slot: firstEnabledSlot(slotPrefs) ?? 'am',
       position: tasksInBucket.length,
       priority: priority ?? undefined,
+      recurring,
       tags,
       clientTrace: makeClientTrace('create'),
     })
-  }, [createTask, weekTasks, inboxTasks])
+  }, [createTask, weekTasks, inboxTasks, slotPrefs])
 
   const handleUpdateTask = useCallback((task: Task) => {
     const current = allTasks.find((entry) => entry.id === task.id)
@@ -584,7 +583,7 @@ export default function App() {
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((v) => !v)}
           user={authData?.user ?? null}
-          onOpenSettings={() => { setShowSettings(true); if (isMobile) setSidebarOpen(false) }}
+          onOpenSettings={() => { setView('settings'); if (isMobile) setSidebarOpen(false) }}
           isMobile={isMobile}
           mobileOpen={sidebarOpen}
           onMobileClose={() => setSidebarOpen(false)}
@@ -651,6 +650,18 @@ export default function App() {
           )}
 
           {view === 'tags' && <TagsView />}
+          {view === 'settings' && (
+            <SettingsView 
+              user={authData?.user ?? null} 
+              dark={dark} 
+              showWeekend={showWeekend} 
+              dimPastDays={dimPastDays}
+              slotPrefs={slotPrefs}
+              onToggleDark={handleToggleDark}
+              onToggleWeekend={handleToggleWeekend}
+              onToggleDimPastDays={handleToggleDimPastDays}
+            />
+          )}
         </main>
 
         {isMobile && (
@@ -707,20 +718,6 @@ export default function App() {
             handleQuickAdd(params)
             setShowQuickAdd(false)
           }}
-        />
-      )}
-
-      {showSettings && (
-        <SettingsModal
-          open={showSettings}
-          onClose={() => setShowSettings(false)}
-          slotPrefs={slotPrefs}
-          dark={dark}
-          showWeekend={showWeekend}
-          dimPastDays={dimPastDays}
-          onToggleDark={handleToggleDark}
-          onToggleWeekend={handleToggleWeekend}
-          onToggleDimPastDays={handleToggleDimPastDays}
         />
       )}
     </DndContext>

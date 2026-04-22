@@ -29,7 +29,7 @@ export interface Tag {
   task_count: number
 }
 
-export type View = 'week' | 'inbox' | 'tags'
+export type View = 'week' | 'inbox' | 'tags' | 'settings'
 export type Variant = 'quiet' | 'columns'
 export type Slot = 'am' | 'pm' | 'eve'
 export type Priority = 'high' | 'med' | 'low'
