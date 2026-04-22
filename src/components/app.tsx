@@ -25,13 +25,15 @@ import {
   useDeleteTask,
   useMoveTask,
   useOverdueTasks,
+  useTaskOccupancy,
   useAuth,
   useUpdateDisplayPrefs,
   type ClientMutationTrace,
 } from '../hooks/use-tasks'
 import { useIsMobile } from '../hooks/use-mobile'
 import { Sidebar } from './sidebar'
-import { WeekView, ListView, TagsView, SettingsView } from './views'
+import { WeekView, ListView, TagsView } from './views'
+import { SettingsView } from './settings-view'
 import { TaskEditor } from './task-editor'
 import { TaskRow } from './task-components'
 import { QuickAdd, type QuickAddCreateParams } from './quick-add'
@@ -214,6 +216,12 @@ export default function App() {
   const inboxResult = useBucketTasks('__inbox')
   const taskDetailResult = useTaskDetail(editingTaskId)
   const overdueResult = useOverdueTasks(weekStart)
+
+  // Global occupancy for sidebar (1 week past to 8 weeks ahead = 10 weeks total)
+  const sidebarStart = useMemo(() => isoDate(addDays(startOfWeek(TODAY, 1), -7)), [])
+  const sidebarEnd = useMemo(() => isoDate(addDays(startOfWeek(TODAY, 1), 8 * 7 + 6)), [])
+  const occupancyResult = useTaskOccupancy(sidebarStart, sidebarEnd)
+  const occupancyMap = occupancyResult.data ?? {}
 
   const weekTasks: TaskMap = weekResult.data ?? {}
   const inboxTasks: Task[] = inboxResult.data ?? []
@@ -578,6 +586,7 @@ export default function App() {
           view={view} onViewChange={(v) => { setView(v); if (isMobile) setSidebarOpen(false) }}
           activeWeekStart={weekStart} onWeekSelect={(d) => { setWeekStart(d); if (isMobile) setSidebarOpen(false) }}
           taskMap={sidebarMap}
+          occupancyMap={occupancyMap}
           showWeekend={showWeekend}
           accent={accent}
           collapsed={collapsed}
