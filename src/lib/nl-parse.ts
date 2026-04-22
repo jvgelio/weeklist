@@ -1,6 +1,6 @@
 import { addDays, isoDate, startOfWeek, MONTH_PT, MONTH_PT_LONG, DAY_INDEX_PT } from './constants'
 
-export type TokenKind = 'date' | 'slot' | 'priority' | 'tag'
+export type TokenKind = 'date' | 'slot' | 'priority' | 'tag' | 'recurring'
 
 export interface NLToken {
   kind:      TokenKind
@@ -10,6 +10,7 @@ export interface NLToken {
   date?:     string
   slot?:     'am' | 'pm' | 'eve'
   priority?: 'high' | 'med' | 'low'
+  recurring?: 'daily' | 'weekly' | 'monthly'
   tag?:      string
   label:     string
 }
@@ -20,6 +21,7 @@ export interface NLParseResult {
   date:       string | null
   slot:       'am' | 'pm' | 'eve' | null
   priority:   'high' | 'med' | 'low' | null
+  recurring:  'daily' | 'weekly' | 'monthly' | null
   tags:       string[]
 }
 
@@ -28,6 +30,7 @@ export interface NLParsedData {
   tags:     string[]
   slot:     'am' | 'pm' | 'eve' | null
   date:     string | null
+  recurring: 'daily' | 'weekly' | 'monthly' | null
 }
 
 // Build alternation strings from month arrays
@@ -100,6 +103,31 @@ function makeRule(regex: RegExp, handler: (m: RegExpExecArray, today: Date, week
 
 // Rules ordered by priority (highest specificity first)
 const RULES: Rule[] = [
+  // 0a. "todo dia" / "diariamente"
+  makeRule(
+    /\b(todo\s+dia|diariamente)\b/gi,
+    () => ({ kind: 'recurring', recurring: 'daily', label: 'diário' })
+  ),
+
+  // 0b. "toda [weekday]"
+  makeRule(
+    new RegExp(`\\btod[oa]s?\\s+(${WEEKDAY_ALT})(?:-feira)?\\b`, 'gi'),
+    (m, today) => {
+      const rawDay = m[1].replace(/-feira$/i, '').trim()
+      const dayIdx = normalizeDayName(rawDay)
+      if (dayIdx === null) return null
+      const resolved = resolveWeekday(dayIdx, false, today)
+      const iso = isoDate(resolved)
+      return { kind: 'recurring', recurring: 'weekly', date: iso, label: `toda ${rawDay.toLowerCase()}` }
+    }
+  ),
+
+  // 0c. "todo mês" / "mensalmente"
+  makeRule(
+    /\b(todo\s+m[eê]s|mensalmente)\b/gi,
+    () => ({ kind: 'recurring', recurring: 'monthly', label: 'mensal' })
+  ),
+
   // 1. Explicit date with year: 27/01/2025, 2025-01-27, 27.01.2025
   makeRule(
     /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})|(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/gi,
@@ -331,14 +359,19 @@ export function parseNL(input: string, today: Date, weekStart: Date): NLParseRes
   let date: string | null = null
   let slot: 'am' | 'pm' | 'eve' | null = null
   let priority: 'high' | 'med' | 'low' | null = null
+  let recurring: 'daily' | 'weekly' | 'monthly' | null = null
   const tags: string[] = []
 
   for (const tok of tokens) {
     if (tok.kind === 'date' && tok.date) date = tok.date
+    if (tok.kind === 'recurring') {
+      recurring = tok.recurring ?? null
+      if (tok.date) date = tok.date
+    }
     if (tok.kind === 'slot' && tok.slot) slot = tok.slot
     if (tok.kind === 'priority' && tok.priority) priority = tok.priority
     if (tok.kind === 'tag' && tok.tag && !tags.includes(tok.tag)) tags.push(tok.tag)
   }
 
-  return { cleanTitle, tokens, date, slot, priority, tags }
+  return { cleanTitle, tokens, date, slot, priority, recurring, tags }
 }

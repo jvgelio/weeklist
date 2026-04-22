@@ -33,6 +33,13 @@ describe('tasksRouter', () => {
     expect(body.error).toBe('from and to are required')
   })
 
+  it('GET /occupancy should return 400 if from/to are invalid format', async () => {
+    const res = await app.request('/occupancy?from=invalid&to=2024-01-01')
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toBe('from and to must be YYYY-MM-DD')
+  })
+
   it('GET /occupancy should return a record of counts per bucketKey', async () => {
     // Mock the db.select().from().where().groupBy() chain
     const mockSelect = vi.fn().mockReturnThis()

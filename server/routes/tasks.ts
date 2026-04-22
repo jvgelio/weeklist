@@ -199,9 +199,14 @@ tasksRouter.get('/occupancy', async (c) => {
     return c.json({ error: 'from and to are required' }, 400)
   }
 
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/
+  if (!dateRe.test(from) || !dateRe.test(to)) {
+    return c.json({ error: 'from and to must be YYYY-MM-DD' }, 400)
+  }
+
   const results = await db.select({
     bucketKey: tasks.bucketKey,
-    count: sql<number>`count(*)`,
+    count: sql<number>`count(*)::int`,
   })
     .from(tasks)
     .where(and(

@@ -62,6 +62,7 @@ describe('QuickAdd', () => {
         title: 'Planejar viagem',
         bucketKey: tomorrow,
         priority: 'high',
+        recurring: null,
         tags: ['work'],
       })
     })

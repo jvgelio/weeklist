@@ -11,6 +11,7 @@ export interface QuickAddCreateParams {
   title: string
   bucketKey: string
   priority: Priority | null
+  recurring: 'daily' | 'weekly' | 'monthly' | null
   tags: string[]
 }
 
@@ -231,10 +232,12 @@ export function QuickAdd({ weekStart, onClose, onCreate }: QuickAddProps) {
 
   function handleSubmit() {
     if (!canSubmit) return
+    const nlRecurring = detailsParsed.recurring ?? titleParsed.recurring
     onCreate({
       title: cleanedTitle,
       bucketKey: selectedDate ?? '__inbox',
       priority,
+      recurring: nlRecurring,
       tags,
     })
   }
