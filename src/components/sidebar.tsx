@@ -200,6 +200,7 @@ export interface SidebarProps {
   activeWeekStart: Date
   onWeekSelect: (date: Date) => void
   taskMap: TaskMap
+  occupancyMap?: Record<string, number>
   showWeekend: boolean
   accent: string
   collapsed: boolean
@@ -214,7 +215,7 @@ export interface SidebarProps {
 export function Sidebar({
   view, onViewChange,
   activeWeekStart, onWeekSelect,
-  taskMap, showWeekend,
+  taskMap, occupancyMap, showWeekend,
   accent,
   collapsed, onToggleCollapsed,
   user,
@@ -363,7 +364,7 @@ export function Sidebar({
               weekStart={w}
               isActive={view === 'week' && sameDay(w, activeWeekStart)}
               onSelect={() => { onViewChange('week'); onWeekSelect(w) }}
-              taskCountByDay={countByDay}
+              taskCountByDay={occupancyMap || countByDay}
               showWeekend={showWeekend}
               today={today}
             />
