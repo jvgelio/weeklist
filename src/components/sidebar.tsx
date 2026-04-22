@@ -206,7 +206,6 @@ export interface SidebarProps {
   collapsed: boolean
   onToggleCollapsed: () => void
   user: { name: string, email: string, avatarUrl: string } | null
-  onOpenSettings: () => void
   isMobile?: boolean
   mobileOpen?: boolean
   onMobileClose?: () => void
@@ -219,7 +218,6 @@ export function Sidebar({
   accent,
   collapsed, onToggleCollapsed,
   user,
-  onOpenSettings,
   isMobile = false,
   mobileOpen = false,
   onMobileClose,

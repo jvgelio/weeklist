@@ -592,7 +592,6 @@ export default function App() {
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((v) => !v)}
           user={authData?.user ?? null}
-          onOpenSettings={() => { setView('settings'); if (isMobile) setSidebarOpen(false) }}
           isMobile={isMobile}
           mobileOpen={sidebarOpen}
           onMobileClose={() => setSidebarOpen(false)}

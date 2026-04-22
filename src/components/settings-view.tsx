@@ -1,10 +1,16 @@
 import React from 'react'
-import { Sun, Cloud, Moon, LogOut, User } from 'lucide-react'
+import { Sun, Cloud, Moon, LogOut, User as UserIcon } from 'lucide-react'
 import type { SlotPrefs } from '../lib/types'
-import { useUpdateSlotPrefs } from '../hooks/use-tasks'
+import { useUpdateSlotPrefs, useLogout } from '../hooks/use-tasks'
+
+interface User { 
+  name: string
+  email: string
+  avatarUrl?: string 
+}
 
 interface SettingsViewProps {
-  user: any
+  user: User | null
   dark: boolean
   showWeekend: boolean
   dimPastDays: boolean
@@ -19,6 +25,7 @@ export function SettingsView({
   onToggleDark, onToggleWeekend, onToggleDimPastDays
 }: SettingsViewProps) {
   const updateSlots = useUpdateSlotPrefs()
+  const logout = useLogout()
 
   const handleToggleSlot = (key: keyof SlotPrefs) => {
     updateSlots.mutate({ ...slotPrefs, [key]: !slotPrefs[key] })
@@ -38,12 +45,12 @@ export function SettingsView({
           </div>
           <div style={{ display: 'flex', background: 'var(--bg-sunken)', padding: 4, borderRadius: 999, gap: 4 }}>
             <button 
-              onClick={() => !dark || onToggleDark()}
+              onClick={() => dark && onToggleDark()}
               style={{ border: 0, padding: '6px 16px', borderRadius: 999, background: !dark ? 'var(--bg-raised)' : 'transparent', color: !dark ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13, fontWeight: 600, boxShadow: !dark ? 'var(--ring)' : 'none' }}>
               Claro
             </button>
             <button 
-              onClick={() => dark || onToggleDark()}
+              onClick={() => !dark && onToggleDark()}
               style={{ border: 0, padding: '6px 16px', borderRadius: 999, background: dark ? 'var(--bg-raised)' : 'transparent', color: dark ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13, fontWeight: 600, boxShadow: dark ? 'var(--ring)' : 'none' }}>
               Escuro
             </button>
@@ -86,14 +93,16 @@ export function SettingsView({
         <div style={{ background: 'var(--bg-raised)', borderRadius: 14, padding: 20, boxShadow: 'var(--ring)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid rgba(204, 0, 0, 0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--line)', display: 'grid', placeItems: 'center' }}>
-              <User size={20} color="var(--ink-mute)" />
+              <UserIcon size={20} color="var(--ink-mute)" />
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: 15 }}>{user?.name || 'Usuário'}</div>
               <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>{user?.email}</div>
             </div>
           </div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, border: '1px solid #cc0000', color: '#cc0000', background: 'transparent', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <button 
+            onClick={() => logout()}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, border: '1px solid #cc0000', color: '#cc0000', background: 'transparent', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             <LogOut size={14} />
             Sair
           </button>
