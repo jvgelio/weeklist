@@ -846,29 +846,4 @@ export function TagsView() {
   )
 }
 
-// ---- SettingsView ----
-
-interface SettingsViewProps {
-  user: any
-  dark: boolean
-  showWeekend: boolean
-  dimPastDays: boolean
-  slotPrefs: SlotPrefs
-  onToggleDark: () => void
-  onToggleWeekend: () => void
-  onToggleDimPastDays: () => void
-}
-
-export function SettingsView({
-  user, dark, showWeekend, dimPastDays, slotPrefs,
-  onToggleDark, onToggleWeekend, onToggleDimPastDays
-}: SettingsViewProps) {
-  return (
-    <div style={{ padding: '32px 24px', maxWidth: 560, margin: '0 auto' }}>
-      <h2 style={{ margin: '0 0 24px', fontSize: 22, fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--ink)' }}>
-        Configurações
-      </h2>
-      <p style={{ color: 'var(--ink-mute)' }}>Placeholder para configurações.</p>
-    </div>
-  )
-}
+// ---- SettingsView (Placeholder removed, now imported in app.tsx from settings-view.tsx)
