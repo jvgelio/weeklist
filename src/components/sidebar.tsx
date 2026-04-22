@@ -382,9 +382,9 @@ export function Sidebar({
         <ViewButton
           collapsed={isCollapsed}
           icon={<Settings size={14} />}
-          label="Settings"
-          active={false}
-          onClick={onOpenSettings}
+          label="Configurações"
+          active={view === 'settings'}
+          onClick={() => onViewChange('settings')}
           accent={accent}
         />
 
