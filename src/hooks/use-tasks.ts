@@ -67,6 +67,7 @@ export const taskKeys = {
     ['tasks', 'bucket', bucket, includeSubtasks ? 'with-subtasks' : 'no-subtasks'] as const,
   detail: (id: string) => ['tasks', 'detail', id] as const,
   overdue: (before: string) => ['tasks', 'overdue', before] as const,
+  occupancy: (from: string, to: string) => ['tasks', 'occupancy', from, to] as const,
 }
 
 // Auth hooks
@@ -193,6 +194,13 @@ export function useOverdueTasks(weekStart: Date) {
   })
 }
 
+export function useTaskOccupancy(from: string, to: string) {
+  return useQuery({
+    queryKey: taskKeys.occupancy(from, to),
+    queryFn: ({ signal }) => api.fetchTaskOccupancy(from, to, signal),
+  })
+}
+
 // Create a task
 export function useCreateTask() {
   const qc = useQueryClient()
@@ -235,6 +243,9 @@ export function useCreateTask() {
       if (ctx?.snapshot) restoreSnapshot(qc, ctx.snapshot)
       logClientLatency(ctx?.clientTrace, 'error')
     },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', 'occupancy'] })
+    },
   })
 }
 
@@ -262,7 +273,11 @@ export function useUpdateTask() {
     onSuccess: (serverTask, _vars, ctx) => {
       if (!ctx) return
       if (!isLatestTaskMutation(ctx.id, ctx.token)) return
-      upsertTaskInCaches(qc, serverTask)
+      if (serverTask.id !== ctx.id) {
+        replaceTaskInCaches(qc, ctx.id, serverTask)
+      } else {
+        upsertTaskInCaches(qc, serverTask)
+      }
       finishTaskMutation(ctx.id, ctx.token)
       logClientLatency(ctx.clientTrace, 'success')
     },
@@ -275,6 +290,7 @@ export function useUpdateTask() {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['tasks', 'overdue'] })
+      qc.invalidateQueries({ queryKey: ['tasks', 'occupancy'] })
     },
   })
 }
@@ -310,6 +326,9 @@ export function useDeleteTask() {
       if (!isLatestTaskMutation(ctx.id, ctx.token)) return
       restoreSnapshot(qc, ctx.snapshot)
       finishTaskMutation(ctx.id, ctx.token)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', 'occupancy'] })
     },
   })
 }
@@ -356,6 +375,9 @@ export function useMoveTask() {
       restoreSnapshot(qc, ctx.snapshot)
       finishTaskMutation(ctx.id, ctx.token)
       logClientLatency(ctx.clientTrace, 'error')
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['tasks', 'occupancy'] })
     },
   })
 }

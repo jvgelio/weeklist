@@ -30,6 +30,17 @@ export async function fetchTasksForWeek(
   return tasks.map(normalizeTask)
 }
 
+export async function fetchTaskOccupancy(
+  from: string,
+  to: string,
+  signal?: AbortSignal,
+): Promise<Record<string, number>> {
+  const params = new URLSearchParams({ from, to })
+  const res = await fetch(`${BASE}/tasks/occupancy?${params.toString()}`, { signal })
+  if (!res.ok) throw new Error(`Failed to fetch occupancy: ${res.status}`)
+  return res.json()
+}
+
 export async function fetchTasksByBucket(
   bucket: string,
   signal?: AbortSignal,
