@@ -73,6 +73,14 @@ function makeClientTrace(label: ClientMutationTrace['label']): ClientMutationTra
   return { label, startedAt: performance.now() }
 }
 
+export async function resolveContextualTaskPosition(tasks: TaskMap, bucketKey: string): Promise<number> {
+  const cachedTasks = tasks[bucketKey]
+  if (cachedTasks !== undefined) return cachedTasks.length
+
+  const fetchedTasks = await api.fetchTasksByBucket(bucketKey)
+  return fetchedTasks.length
+}
+
 function toUpdatePayload(current: Task, next: Task): MutableTaskPatch {
   const patch: MutableTaskPatch = {}
 
@@ -293,10 +301,10 @@ export default function App() {
   }, [createTask, weekTasks, inboxTasks])
 
   const handleContextualAdd = useCallback(async (params: ContextualTaskCreateParams) => {
-    const tasksInBucket = weekTasks[params.bucketKey] ?? []
+    const position = await resolveContextualTaskPosition(weekTasks, params.bucketKey)
     await createTask.mutateAsync({
       ...params,
-      position: tasksInBucket.length,
+      position,
       clientTrace: makeClientTrace('create'),
     })
   }, [createTask, weekTasks])

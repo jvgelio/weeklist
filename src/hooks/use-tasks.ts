@@ -207,18 +207,17 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: ({ clientTrace: _clientTrace, ...data }: CreateTaskInput) => api.createTask(data),
     onMutate: async (newTaskParams) => {
-      const snapshot = qc.getQueriesData({ queryKey: taskKeys.all() })
-      const cancelPromise = qc.cancelQueries({ queryKey: taskKeys.all() })
+      await qc.cancelQueries({ queryKey: taskKeys.all() })
 
-      const tempId = `temp-${Date.now()}`
+      const tempId = `temp-${crypto.randomUUID()}`
       const nowIso = new Date().toISOString()
       const tempTask: Task = {
         id: tempId,
         title: newTaskParams.title,
         done: false,
         bucketKey: newTaskParams.bucketKey,
-        slot: (newTaskParams.slot as Task['slot']) ?? null,
-        priority: (newTaskParams.priority as Task['priority']) ?? null,
+        slot: newTaskParams.slot ?? null,
+        priority: newTaskParams.priority ?? null,
         recurring: newTaskParams.recurring ?? null,
         tags: newTaskParams.tags ?? [],
         note: null,
@@ -231,8 +230,7 @@ export function useCreateTask() {
       addTaskToCaches(qc, tempTask)
       logClientLatency(newTaskParams.clientTrace, 'optimistic')
 
-      await cancelPromise
-      return { snapshot, tempId, clientTrace: newTaskParams.clientTrace }
+      return { tempId, clientTrace: newTaskParams.clientTrace }
     },
     onSuccess: (createdTask, _vars, ctx) => {
       if (!ctx?.tempId) return
@@ -240,7 +238,7 @@ export function useCreateTask() {
       logClientLatency(ctx.clientTrace, 'success')
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.snapshot) restoreSnapshot(qc, ctx.snapshot)
+      if (ctx?.tempId) removeTaskFromCaches(qc, ctx.tempId)
       logClientLatency(ctx?.clientTrace, 'error')
     },
     onSettled: () => {

@@ -75,9 +75,9 @@ export async function fetchTaskById(id: string, signal?: AbortSignal): Promise<T
 export async function createTask(data: {
   title: string
   bucketKey: string
-  slot?: string
+  slot?: Task['slot']
   position: number
-  priority?: string | null
+  priority?: Task['priority']
   recurring?: Task['recurring']
   tags?: string[]
 }): Promise<Task> {

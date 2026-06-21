@@ -138,4 +138,118 @@ describe('useCreateTask', () => {
 
     expect(queryClient.getQueryData<TaskMap>(weekKey)).toEqual(beforeMutation)
   })
+
+  it('keeps the optimistic task after cancelling an in-flight week query', async () => {
+    const request = deferred<Task>()
+    vi.mocked(api.createTask).mockReturnValueOnce(request.promise)
+    const { queryClient, weekKey, wrapper } = setup()
+    const inFlightQuery = queryClient.fetchQuery({
+      queryKey: weekKey,
+      queryFn: ({ signal }) => new Promise<TaskMap>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      }),
+    })
+    const lifecycle: string[] = []
+    const cancelQueries = queryClient.cancelQueries.bind(queryClient)
+    vi.spyOn(queryClient, 'cancelQueries').mockImplementation(async (filters, options) => {
+      lifecycle.push('cancel-start')
+      await cancelQueries(filters, options)
+      lifecycle.push('cancel-end')
+    })
+    const getQueriesData = queryClient.getQueriesData.bind(queryClient)
+    vi.spyOn(queryClient, 'getQueriesData').mockImplementation((filters) => {
+      lifecycle.push('snapshot-or-cache-read')
+      return getQueriesData(filters)
+    })
+    const { result } = renderHook(() => useCreateTask(), { wrapper })
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(weekKey)?.fetchStatus).toBe('fetching')
+    })
+
+    const mutation = result.current.mutateAsync({
+      title: 'Survives cancellation',
+      bucketKey: '2026-06-23',
+      slot: 'pm',
+      position: 1,
+    })
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData<TaskMap>(weekKey)?.['2026-06-23'])
+        .toEqual(expect.arrayContaining([
+          expect.objectContaining({ title: 'Survives cancellation' }),
+        ]))
+    })
+    expect(lifecycle.slice(0, 3)).toEqual([
+      'cancel-start',
+      'cancel-end',
+      'snapshot-or-cache-read',
+    ])
+
+    request.resolve({
+      ...existingTask(),
+      id: 'created-after-cancellation',
+      title: 'Survives cancellation',
+      slot: 'pm',
+      position: 1,
+    })
+    await mutation
+    await inFlightQuery
+  })
+
+  it('removes only the failed optimistic task when creations overlap', async () => {
+    const firstRequest = deferred<Task>()
+    const secondRequest = deferred<Task>()
+    vi.mocked(api.createTask)
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(secondRequest.promise)
+    const { queryClient, weekKey, wrapper } = setup()
+    const { result } = renderHook(() => useCreateTask(), { wrapper })
+
+    const firstMutation = result.current.mutateAsync({
+      title: 'First pending task',
+      bucketKey: '2026-06-23',
+      slot: 'am',
+      position: 1,
+    })
+    await waitFor(() => {
+      expect(queryClient.getQueryData<TaskMap>(weekKey)?.['2026-06-23'])
+        .toEqual(expect.arrayContaining([
+          expect.objectContaining({ title: 'First pending task' }),
+        ]))
+    })
+
+    const secondMutation = result.current.mutateAsync({
+      title: 'Second successful task',
+      bucketKey: '2026-06-23',
+      slot: 'pm',
+      position: 2,
+    })
+    await waitFor(() => {
+      expect(queryClient.getQueryData<TaskMap>(weekKey)?.['2026-06-23']).toHaveLength(3)
+    })
+
+    secondRequest.resolve({
+      ...existingTask(),
+      id: 'second-created-task',
+      title: 'Second successful task',
+      slot: 'pm',
+      position: 2,
+    })
+    await secondMutation
+
+    const failure = new Error('First create failed')
+    await act(async () => {
+      firstRequest.reject(failure)
+      await expect(firstMutation).rejects.toBe(failure)
+    })
+
+    const finalTasks = queryClient.getQueryData<TaskMap>(weekKey)?.['2026-06-23']
+    expect(finalTasks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'existing-task' }),
+      expect.objectContaining({ id: 'second-created-task', title: 'Second successful task' }),
+    ]))
+    expect(finalTasks).toHaveLength(2)
+    expect(finalTasks?.some((task) => task.title === 'First pending task')).toBe(false)
+  })
 })
