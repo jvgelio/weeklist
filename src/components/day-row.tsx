@@ -3,9 +3,10 @@ import { motion } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
 import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, sameDay, isPastDay } from '../lib/constants'
-import type { Task, SlotPrefs } from '../lib/types'
+import type { ContextualTaskCreateParams, Slot, Task, SlotPrefs } from '../lib/types'
 import { getDisplaySlot } from '../lib/slot-utils'
 import { TaskRow, InlineAdd, LunchDivider, IconSun, IconMoon, IconEvening, IconChevron } from './task-components'
+import { ContextualTaskAdd } from './contextual-task-add'
 
 // Helper
 function isoDate(date: Date): string {
@@ -25,6 +26,12 @@ const columnVariants = {
       staggerChildren: 0.05 // Stagger tasks within the column
     }
   }
+}
+
+const SLOT_LABEL: Record<Slot, string> = {
+  am: 'manha',
+  pm: 'tarde',
+  eve: 'noite',
 }
 
 // ---- DayRow (manifesto + quiet variants) ----
@@ -205,6 +212,7 @@ export const DayRow = React.memo(DayRowComponent)
 
 interface DayColumnProps {
   date: Date
+  weekStart: Date
   tasks: Task[]
   isToday: boolean
   isWeekend?: boolean
@@ -216,13 +224,18 @@ interface DayColumnProps {
   onDeleteTask: (id: string) => void
   slotPrefs: SlotPrefs
   dimPastDays: boolean
+  activeCreateTarget: string | null
+  onActiveCreateTargetChange: (target: string | null) => void
+  onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
+  isDraggingTask: boolean
 }
 
 function DayColumnComponent({
-  date, tasks, isToday, isWeekend = false, compact = false,
+  date, weekStart, tasks, isToday, isWeekend = false, compact = false,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, slotPrefs,
   dimPastDays,
+  activeCreateTarget, onActiveCreateTargetChange, onCreateContextTask, isDraggingTask,
 }: DayColumnProps) {
   const key = isoDate(date)
 
@@ -252,6 +265,23 @@ function DayColumnComponent({
     onOpen: onOpenTask,
     onChange: onUpdateTask,
     onDelete: onDeleteTask,
+  }
+
+  function renderContextualAdd(slot: Slot) {
+    const target = `${key}:${slot}`
+    return (
+      <ContextualTaskAdd
+        bucketKey={key}
+        slot={slot}
+        weekStart={weekStart}
+        accessibleLabel={`Adicionar tarefa na ${DAY_NAMES_LONG_PT[dayIdx].toLowerCase()} de ${SLOT_LABEL[slot]}`}
+        open={activeCreateTarget === target}
+        disabled={isDraggingTask}
+        onOpen={() => onActiveCreateTargetChange(target)}
+        onClose={() => onActiveCreateTargetChange(null)}
+        onCreate={onCreateContextTask}
+      />
+    )
   }
 
   return (
@@ -322,7 +352,7 @@ function DayColumnComponent({
           background: 'transparent',
         }}>
           {slotPrefs.am && (
-            <div ref={setAmRef} style={{
+            <div ref={setAmRef} data-testid={`day-slot-${key}-am`} style={{
               background: isOverAm ? 'var(--accent-soft)' : 'transparent',
               border: isOverAm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
               borderRadius: 12, transition: 'all 120ms ease',
@@ -337,7 +367,7 @@ function DayColumnComponent({
                   {amTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
                 </motion.div>
               </SortableContext>
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'am')} placeholder="Adicionar tarefa" />
+              {renderContextualAdd('am')}
             </div>
           )}
 
@@ -345,7 +375,7 @@ function DayColumnComponent({
           {slotPrefs.am && !slotPrefs.pm && slotPrefs.eve && <div style={{ margin: '8px 4px', borderTop: '1.2px dashed var(--line-strong)', opacity: 0.6 }} />}
 
           {slotPrefs.pm && (
-            <div ref={setPmRef} style={{
+            <div ref={setPmRef} data-testid={`day-slot-${key}-pm`} style={{
               background: isOverPm ? 'var(--accent-soft)' : 'transparent',
               border: isOverPm ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
               borderRadius: 12, transition: 'all 120ms ease',
@@ -364,14 +394,14 @@ function DayColumnComponent({
                   {pmTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
                 </motion.div>
               </SortableContext>
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'pm')} placeholder="Adicionar tarefa" />
+              {renderContextualAdd('pm')}
             </div>
           )}
 
           {(slotPrefs.pm || slotPrefs.am) && slotPrefs.eve && <div style={{ margin: '8px 4px', borderTop: '1.2px dashed var(--line-strong)', opacity: 0.6 }} />}
 
           {slotPrefs.eve && (
-            <div ref={setEveRef} style={{
+            <div ref={setEveRef} data-testid={`day-slot-${key}-eve`} style={{
               background: isOverEve ? 'var(--accent-soft)' : 'transparent',
               border: isOverEve ? '1.5px dashed var(--accent)' : '1.5px dashed transparent',
               borderRadius: 12, transition: 'all 120ms ease',
@@ -390,7 +420,7 @@ function DayColumnComponent({
                   {eveTasks.map(t => <TaskRow key={t.id} task={t} {...taskProps} />)}
                 </motion.div>
               </SortableContext>
-              <InlineAdd compact onAdd={title => onAddTask(key, title, 'eve')} placeholder="Adicionar tarefa" />
+              {renderContextualAdd('eve')}
             </div>
           )}
         </div>
@@ -467,6 +497,7 @@ export function WeekendStrip({
 
 interface WeekendColumnsStripProps {
   days: Date[]
+  weekStart: Date
   tasks: Record<string, Task[]>
   accent?: string
   onOpenTask: (task: Task) => void
@@ -475,12 +506,17 @@ interface WeekendColumnsStripProps {
   onDeleteTask: (id: string) => void
   slotPrefs: SlotPrefs
   dimPastDays: boolean
+  activeCreateTarget: string | null
+  onActiveCreateTargetChange: (target: string | null) => void
+  onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
+  isDraggingTask: boolean
 }
 
 export function WeekendColumnsStrip({
-  days, tasks, accent,
+  days, weekStart, tasks, accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, slotPrefs,
   dimPastDays,
+  activeCreateTarget, onActiveCreateTargetChange, onCreateContextTask, isDraggingTask,
 }: WeekendColumnsStripProps) {
   const [expanded, setExpanded] = useState(false)
   const totalTasks = days.reduce((sum, d) => sum + (tasks[isoDate(d)]?.length ?? 0), 0)
@@ -497,6 +533,7 @@ export function WeekendColumnsStrip({
             <DayColumn
               key={isoDate(d)}
               date={d}
+              weekStart={weekStart}
               tasks={tasks[isoDate(d)] ?? []}
               isToday={sameDay(d, new Date())}
               isWeekend
@@ -508,6 +545,10 @@ export function WeekendColumnsStrip({
               onDeleteTask={onDeleteTask}
               slotPrefs={slotPrefs}
               dimPastDays={dimPastDays}
+              activeCreateTarget={activeCreateTarget}
+              onActiveCreateTargetChange={onActiveCreateTargetChange}
+              onCreateContextTask={onCreateContextTask}
+              isDraggingTask={isDraggingTask}
             />
           ))}
         </div>

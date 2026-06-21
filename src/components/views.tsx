@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { MONTH_PT, DAY_NAMES_PT, PRESET_COLORS, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
-import type { Task, TaskMap, Variant, Tag, SlotPrefs } from '../lib/types'
+import type { ContextualTaskCreateParams, Task, TaskMap, Variant, Tag, SlotPrefs } from '../lib/types'
 import {
   DayRow, DayColumn,
   WeekendStrip, WeekendColumnsStrip,
@@ -13,6 +13,10 @@ import { IconArrow, TaskRow, InlineAdd } from './task-components'
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '../hooks/use-tags'
 
 const TODAY = new Date()
+
+async function rejectMissingContextCreate(): Promise<void> {
+  throw new Error('WeekView requires onCreateContextTask to create contextual tasks')
+}
 
 // ---- DayNavBar ----
 
@@ -316,6 +320,8 @@ interface WeekViewProps {
   onPullOneOverdue: (id: string) => void
   onPullAllOverdue: () => void
   isMobile?: boolean
+  onCreateContextTask?: (params: ContextualTaskCreateParams) => Promise<void>
+  isDraggingTask?: boolean
 }
 
 export function WeekView({
@@ -327,7 +333,15 @@ export function WeekView({
   overdueTasks, onPullOneOverdue, onPullAllOverdue,
   slotPrefs,
   isMobile = false,
+  onCreateContextTask = rejectMissingContextCreate,
+  isDraggingTask = false,
 }: WeekViewProps) {
+  const [activeCreateTarget, setActiveCreateTarget] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isDraggingTask) setActiveCreateTarget(null)
+  }, [isDraggingTask])
+
   // Auto-scroll to today
   useEffect(() => {
     if (variant === 'quiet') {
@@ -373,6 +387,14 @@ export function WeekView({
     onAddTask,
     onUpdateTask,
     onDeleteTask,
+  }
+
+  const columnCreateProps = {
+    weekStart,
+    activeCreateTarget,
+    onActiveCreateTargetChange: setActiveCreateTarget,
+    onCreateContextTask,
+    isDraggingTask,
   }
 
   const renderHeader = () => (
@@ -467,6 +489,7 @@ export function WeekView({
                     isToday={sameDay(d, TODAY)}
                     isWeekend={false}
                     compact={false}
+                    {...columnCreateProps}
                     {...dayProps}
                   />
                 )
@@ -475,6 +498,7 @@ export function WeekView({
             {showWeekend && (
               <WeekendColumnsStrip
                 days={weekend} tasks={tasks}
+                {...columnCreateProps}
                 {...dayProps}
               />
             )}
