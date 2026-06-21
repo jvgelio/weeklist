@@ -35,6 +35,15 @@ export type Slot = 'am' | 'pm' | 'eve'
 export type Priority = 'high' | 'med' | 'low'
 export type Recurring = 'daily' | 'weekly' | 'monthly'
 
+export interface ContextualTaskCreateParams {
+  title: string
+  bucketKey: string
+  slot: Slot
+  priority: Priority | null
+  recurring: Recurring | null
+  tags: string[]
+}
+
 // Tasks grouped by bucket key
 export type TaskMap = Record<string, Task[]>
 
