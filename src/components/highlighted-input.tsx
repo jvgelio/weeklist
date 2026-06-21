@@ -26,6 +26,7 @@ const BASE_TOKEN_BG: Record<TokenKind, string> = {
   date:     'rgba(56,189,248,0.22)',
   slot:     'rgba(56,189,248,0.13)',
   priority: 'rgba(214,59,42,0.18)',
+  recurring: 'rgba(245,158,11,0.20)',
   tag:      'rgba(167,139,250,0.22)',
 }
 

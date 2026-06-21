@@ -316,7 +316,7 @@ const RULES: Rule[] = [
 
 export function parseNL(input: string, today: Date, weekStart: Date): NLParseResult {
   if (!input.trim()) {
-    return { cleanTitle: '', tokens: [], date: null, slot: null, priority: null, tags: [] }
+    return { cleanTitle: '', tokens: [], date: null, slot: null, priority: null, recurring: null, tags: [] }
   }
 
   const consumed = new Array(input.length).fill(false)

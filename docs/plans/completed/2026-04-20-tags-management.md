@@ -1,5 +1,7 @@
 # Tags Management Implementation Plan
 
+> **Status:** Arquivado em `completed/` porque a funcionalidade correspondente esta presente no codigo. Os checkboxes abaixo preservam o plano original e nao constituem evidencia retroativa de execucao.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make tags dynamic (stored in DB) and add a Tags management page in the sidebar where users can create, rename, recolor, and delete tags.

@@ -101,7 +101,7 @@ export function SettingsView({
             </div>
           </div>
           <button 
-            onClick={() => logout()}
+            onClick={() => logout.mutate()}
             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, border: '1px solid #cc0000', color: '#cc0000', background: 'transparent', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             <LogOut size={14} />
             Sair

@@ -433,6 +433,7 @@ const TOKEN_BADGE_COLORS: Record<TokenKind, string> = {
   date:     '#38bdf8',
   slot:     '#38bdf8',
   priority: '#d63b2a',
+  recurring: '#f59e0b',
   tag:      '#a78bfa',
 }
 
@@ -457,6 +458,7 @@ export function InlineAdd({ onAdd, placeholder = 'Adicionar tarefa...', compact,
         tags:     parsed.tags,
         slot:     parsed.slot,
         date:     parsed.date,
+        recurring: parsed.recurring,
       })
     }
     setVal('')

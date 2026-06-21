@@ -1,229 +1,159 @@
-# Weeklist — AGENTS.md
+# Weeklist - AI Agent Guide
 
-## Behavioral Guidelines
+Este arquivo e a fonte unica de instrucoes para assistentes de codigo neste repositorio. `CLAUDE.md` apenas importa este conteudo.
 
-### 1. Think Before Coding
+## Produto
 
-Don't assume. Don't hide confusion. Surface tradeoffs.
+Weeklist e um gerenciador semanal de tarefas com agenda por dia e periodo, inbox, tags, recorrencia, drag-and-drop e uma CLI. O frontend React consome uma API Hono; PostgreSQL e Drizzle persistem dados por usuario.
 
-Before implementing:
-- State assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them — don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+## Antes de alterar codigo
 
-### 2. Simplicity First
+1. Leia o pedido e declare suposicoes relevantes.
+2. Inspecione os arquivos envolvidos, seus consumidores, testes e `git status`.
+3. Classifique a tarefa conforme [docs/WORKFLOW.md](docs/WORKFLOW.md).
+4. Para feature, mudanca de banco, alteracao ampla ou decisao de UX, escreva um plano em `docs/plans/active/` e obtenha aprovacao antes de implementar.
+5. Defina criterios de sucesso e comandos de verificacao.
 
-Minimum code that solves the problem. Nothing speculative.
+Para detalhes, consulte somente os documentos relacionados a tarefa:
 
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+| Assunto | Fonte |
+|---|---|
+| Arquitetura e ownership | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Fluxo de trabalho | [docs/WORKFLOW.md](docs/WORKFLOW.md) |
+| Regras de dominio | [docs/domain/invariants.md](docs/domain/invariants.md) |
+| Divida tecnica | [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md) |
+| Decisoes aprovadas | `docs/specs/` |
+| Planos em andamento | `docs/plans/active/` |
+| Planos entregues | `docs/plans/completed/` |
 
-### 3. Surgical Changes
+## Principios de execucao
 
-Touch only what you must. Clean up only your own mess.
+### Pense antes de codificar
 
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it — don't delete it.
+- Nao esconda duvidas ou tradeoffs.
+- Apresente interpretacoes diferentes quando elas mudarem o resultado.
+- Prefira a solucao mais simples que atende ao pedido.
+- Pare e pergunte quando uma suposicao arriscada nao puder ser confirmada no repositorio.
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+### Mude apenas o necessario
 
-### 4. Goal-Driven Execution
+- Nao refatore codigo adjacente sem necessidade.
+- Preserve o estilo local.
+- Remova somente os orfaos criados pela sua mudanca.
+- Nao reverta alteracoes preexistentes do usuario.
 
-Define success criteria. Loop until verified.
+### Verifique o comportamento
 
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
----
-
-## Stack
-
-| Camada | Tecnologia |
-|--------|-----------|
-| Frontend | Vite + React 18 + TypeScript |
-| API | Hono (Node.js) |
-| Banco | PostgreSQL (Railway) |
-| ORM | Drizzle ORM |
-| Server state | TanStack Query v5 |
-| Drag-and-drop | @dnd-kit/core + @dnd-kit/sortable |
-| Auth | Google OAuth (sessions via cookie) |
-| Testes | Vitest 4.x |
-| Deploy | Railway |
-
-## Estrutura de Diretórios
-
-```
-src/
-  components/
-    app.tsx               # Raiz: DndContext, QueryClient, slotPrefs, auth gate
-    sidebar.tsx           # Sidebar com mini-calendário e nav de views
-    views.tsx             # WeekView, ListView, TagsView, ViewModeToggle
-    day-row.tsx           # DayRow, DayColumn, WeekendStrip, WeekendColumnsStrip
-    task-components.tsx   # Icon, TaskRow (useSortable), InlineAdd, Checkbox, etc.
-    task-editor.tsx       # Modal de edição de tarefa
-    settings-modal.tsx    # Modal de configurações (slots am/pm/eve)
-    login.tsx             # Tela de login (Google OAuth)
-    quick-add.tsx         # Componente de entrada rápida
-    highlighted-input.tsx # Input com highlight de NL tokens
-  hooks/
-    use-tasks.ts   # useWeekTasks, useBucketTasks, useCreateTask, useMoveTask, useAuth, useUpdateSlotPrefs, etc.
-    use-tags.ts    # useUserTags, useCreateTag, useDeleteTag, etc.
-  lib/
-    types.ts         # Task, Subtask, Tag, TaskMap, View, Variant, Slot, SlotPrefs, etc.
-    api.ts           # fetch wrappers para /api/*
-    constants.ts     # PRIORITY_COLORS, helpers de data
-    query-client.ts  # QueryClient singleton
-    slot-utils.ts    # firstEnabledSlot, migrateSlot, getDisplaySlot (lógica pura)
-    nl-parse.ts      # Parser de linguagem natural para inputs de tarefa
-    __tests__/
-      slot-utils.test.ts  # Testes unitários para slot-utils
-server/
-  index.ts           # Hono app: monta rotas, auth middleware, serve dist/
-  routes/
-    auth.ts          # GET /api/auth/me, /google, /callback, /logout
-    tasks.ts         # GET /api/tasks, POST, PATCH /:id, PATCH /:id/move, DELETE /:id
-    tags.ts          # GET /api/tags, POST, PATCH /:id, DELETE /:id
-    settings.ts      # PATCH /api/settings/slots
-  db/
-    schema.ts        # Drizzle schema: users, sessions, tags, tasks, subtasks
-    client.ts        # Pool Postgres
-    migrations/      # SQL gerado pelo drizzle-kit
-styles/
-  tokens.css         # Design tokens CSS
-```
+- Bugfix: reproduza com teste quando viavel, veja o teste falhar e depois passar.
+- Logica pura: cubra casos normais e limites com Vitest.
+- API: teste autorizacao, isolamento por usuario, validacao e resposta.
+- UI: verifique estados relevantes e comportamento responsivo quando afetados.
+- Banco: valide schema, SQL gerado, ordem de migracao e compatibilidade dos consumidores.
 
 ## Comandos
 
 ```bash
-npm run dev          # Vite (5173) + Hono (3000) em paralelo
-npm run build        # Vite build → dist/
-npm start            # Produção: Hono serve dist/ + API
+npm run dev               # Vite 5173 + Hono 3000
+npm run build             # Build de producao do frontend
+npm start                 # Hono serve API e dist/
+npm test                  # Suite Vitest
+npm run typecheck         # Client e arquivos de configuracao
+npm run typecheck:server  # Diagnostico; divida atual registrada como Q-004
+npm run verify            # Typecheck + testes + build
 
-# --- CLI Weeklist ---
-# Localização: ./cli/index.js
-# Uso: node cli/index.js <comando> (ou 'week' se instalado globalmente)
-# Comandos: login, list, add, done, rm
-# Exemplo: node cli/index.js list tomorrow
+npm run db:generate       # Gera SQL a partir do schema Drizzle
+npm run db:migrate        # Aplica migrations em DATABASE_URL
+npm run db:studio         # Abre Drizzle Studio
+npm run db:seed           # Seed de desenvolvimento
+npm run db:seed:perf      # Dataset para performance
+npm run perf:baseline     # Mede baseline de performance
 
-npm run db:generate  # drizzle-kit generate → gera SQL em server/db/migrations/
-npm run db:migrate   # drizzle-kit migrate  → aplica migrations no banco
-npm run db:studio    # drizzle-kit studio   → GUI do banco no browser
-
-npm test             # vitest run --reporter verbose
+node cli/index.js <comando>  # login, list, add, done, rm
 ```
 
-## Variáveis de Ambiente
+Nao exija `lint` enquanto o projeto nao tiver linter e script configurados.
 
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Vite, React 18, TypeScript |
+| API | Hono em Node.js |
+| Banco | PostgreSQL no Railway |
+| ORM | Drizzle ORM |
+| Server state | TanStack Query v5 |
+| Drag-and-drop | dnd-kit |
+| Animacao | Framer Motion |
+| Auth | Google OAuth com sessao em cookie |
+| Testes | Vitest 4 e Testing Library |
+
+## Regras criticas
+
+### Tipos e ownership
+
+- Tipos de dominio compartilhados vivem em `src/lib/types.ts`.
+- Logica pura compartilhada entre client e server vive em `src/lib/` e nao pode depender do DOM.
+- Novos recursos de API recebem arquivo proprio em `server/routes/`.
+- Toda leitura ou escrita de dados protegidos deve ser limitada ao usuario autenticado.
+
+### Autenticacao
+
+- `server/index.ts` protege `/api/tasks/*`, `/api/tags/*` e `/api/settings/*`.
+- O middleware chama `getAuthUser(c)` e salva o resultado com `c.set('user', user)`.
+- Rotas protegidas usam `c.get('user')`; nao autenticam novamente.
+- Novas familias de rotas privadas devem receber middleware equivalente antes de serem montadas.
+
+### TanStack Query
+
+- Mutations que afetam a UI imediatamente usam optimistic update, snapshot, rollback e invalidacao.
+- Use `taskKeys` e `tagKeys`; nao crie chaves paralelas ad hoc.
+- Mudancas em tarefas devem considerar todas as formas de cache afetadas: semana, bucket, detalhe, atrasadas e ocupacao.
+- `useMoveTask` deve manter consistencia entre caches de semana e bucket.
+
+### Slots e drag-and-drop
+
+- Slots validos: `am`, `pm`, `eve` ou `null`.
+- `src/lib/slot-utils.ts` e a fonte da logica de fallback e migracao de slots.
+- Alterar preferencias de slot migra tarefas datadas na mesma transacao do update do usuario.
+- Existe um unico `DndContext`, em `src/components/app.tsx`, para movimentos entre containers.
+- Droppables devem carregar `data.type`, `bucketKey` e `slot`; nao dependa apenas de parsing do ID.
+
+### Banco e migrations
+
+- `server/db/schema.ts` e a fonte de verdade do schema.
+- Gere migrations com `npm run db:generate`; nunca edite SQL gerado manualmente.
+- Nao aplique migration em producao sem autorizacao explicita.
+- Mudancas de schema devem atualizar [docs/domain/invariants.md](docs/domain/invariants.md) quando alterarem relacoes ou regras.
+- Operacoes de reordenacao ou migracao com multiplas escritas devem ser transacionais.
+
+## Variaveis de ambiente
+
+```text
+DATABASE_URL
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+SESSION_SECRET
+PORT
 ```
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-SESSION_SECRET=...          # segredo para assinar cookies de sessão
-PORT=3000                   # Usado pelo Hono em produção (Railway injeta automaticamente)
-```
 
-Em dev, crie `.env` na raiz.
+- Nunca registre segredos, cookies ou URLs com credenciais.
+- `.env` e `.env.local` sao locais e ignorados pelo Git.
+- Railway injeta `PORT` e pode fornecer `DATABASE_URL`.
 
-## Deploy no Railway
+## Documentacao e planos
 
-1. Crie um serviço conectado ao repositório
-2. Adicione um addon PostgreSQL — Railway injeta `DATABASE_URL` automaticamente
-3. Configure Build Command: `npm run build`
-4. Configure Start Command: `npm start`
-5. Rode as migrations uma vez: `npm run db:migrate` (no Railway shell ou localmente apontando para o banco de produção)
+- Specs aprovadas ficam em `docs/specs/`.
+- Um plano em execucao fica em `docs/plans/active/`.
+- Ao terminar, atualize o plano para refletir o que ocorreu e mova-o para `docs/plans/completed/`.
+- Nao crie spec ou plano para mudanca trivial, puramente mecanica e de baixo risco.
+- Problemas reais encontrados fora do escopo devem ser registrados ou deduplicados em `docs/QUALITY_SCORE.md`; nao os corrija silenciosamente.
+- Atualize este arquivo somente para regras estaveis. Detalhes volateis pertencem aos documentos especializados ou ao codigo.
 
-## Convenções
+## Conclusao de uma tarefa
 
-### Tipos
-Todos os tipos de domínio ficam em `src/lib/types.ts`. Nunca redefina `Task`, `Subtask`, `Tag`, `TaskMap` em outros arquivos. `SlotPrefs` vive em `slot-utils.ts` e é re-exportado por `types.ts`.
+Antes de declarar conclusao:
 
-### API Routes
-Cada recurso tem seu arquivo em `server/routes/`. Novos recursos ganham novos arquivos — não adicione rotas em `tasks.ts` para outros recursos.
-
-### Autenticação
-- `index.ts` registra middleware de auth para `/api/tasks/*`, `/api/tags/*`, `/api/settings/*`
-- O middleware chama `getAuthUser(c)` e faz `c.set('user', user)` — rotas protegidas usam `c.get('user')` diretamente (não precisam chamar `getAuthUser` de novo)
-- `getAuthUser` lê o cookie de sessão e retorna o `User` do DB ou `null`
-
-### Slot System
-- `Task.slot`: `'am' | 'pm' | 'eve' | null`
-- `SlotPrefs = { am: boolean; pm: boolean; eve: boolean }` — salvo como colunas `slot_am/slot_pm/slot_eve` na tabela `users`
-- `slot-utils.ts` — lógica pura, importável no server e no client
-  - `firstEnabledSlot(prefs)` — prioridade: am → pm → eve
-  - `migrateSlot(slot, prefs)` — move slot desabilitado para o primeiro habilitado
-  - `getDisplaySlot(slot, prefs)` — slot de exibição (tarefas órfãs caem no primeiro habilitado)
-- Ao alterar SlotPrefs via `PATCH /api/settings/slots`, o server migra tarefas de date-buckets em transação
-
-### Mutations — sempre com optimistic update
-```typescript
-// Padrão obrigatório para mutations que afetam a UI imediatamente:
-const mutation = useMutation({
-  mutationFn: api.someAction,
-  onMutate: async (vars) => {
-    await qc.cancelQueries({ queryKey: ['tasks'] })
-    const snapshot = qc.getQueriesData({ queryKey: ['tasks'] })
-    // atualiza cache localmente
-    return { snapshot }
-  },
-  onError: (_err, _vars, ctx) => {
-    // rollback
-    for (const [key, data] of ctx.snapshot) qc.setQueryData(key, data)
-  },
-  onSettled: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
-})
-```
-
-### Drag-and-drop
-- `TaskRow` usa `useSortable({ id: task.id })` de `@dnd-kit/sortable`
-- Day containers usam `useDroppable({ id: bucketKey })` de `@dnd-kit/core`
-- Slot zones usam `useDroppable({ id: '${bucketKey}:am' | ':pm' | ':eve' })`
-- `DndContext` fica em `app.tsx` — um único contexto para cross-container drags
-- `handleDragEnd` distingue bucket keys (regex ISO date ou prefixo `__`) de task IDs
-
-### Migrations
-```bash
-# 1. Edite server/db/schema.ts
-# 2. Gere o SQL:
-npm run db:generate
-# 3. Aplique:
-npm run db:migrate
-```
-Nunca edite os arquivos `.sql` em `server/db/migrations/` manualmente.
-
-### Cache shapes do TanStack Query
-- `['auth', 'me']` → `{ user: User }` — dados do usuário autenticado (inclui `slotAm/slotPm/slotEve`)
-- `['tasks', 'week']` → `TaskMap` (devido ao `select: groupByBucket`)
-- `['tasks', bucketKey]` → `Task[]`
-- `useMoveTask.onMutate` atualiza **ambas** as shapes — não quebre essa lógica
-
-## Bucket Keys
-
-- `2026-04-18` → tarefa agendada para esta data
-- `__inbox` → inbox (sem data)
-- `__someday` → alguma hora (sem comprometimento)
-
-## DB Schema (tabelas principais)
-
-- `users` — id, googleId, email, name, avatarUrl, createdAt, slotAm, slotPm, slotEve
-- `sessions` — id, userId, expiresAt
-- `tags` — id (slug), userId, name, color
-- `tasks` — id, userId, title, done, bucketKey, slot, priority, recurring, tags (array), note, position, createdAt, updatedAt
-- `subtasks` — id, taskId, title, done, position
+1. Execute as verificacoes proporcionais ao risco; para mudancas amplas, use `npm run verify`. Mudancas no server tambem executam `npm run typecheck:server` e devem relatar a divida conhecida enquanto Q-004 estiver aberto.
+2. Leia o diff completo e confira arquivos inesperados, segredos e mudancas fora do escopo.
+3. Atualize plano, invariantes e `QUALITY_SCORE.md` quando os gatilhos se aplicarem.
+4. Informe o que mudou, quais verificacoes passaram e qualquer risco residual.

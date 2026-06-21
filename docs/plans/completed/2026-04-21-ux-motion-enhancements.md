@@ -1,5 +1,7 @@
 # UX Motion Enhancements Implementation Plan
 
+> **Status:** Arquivado em `completed/` porque a funcionalidade correspondente esta presente no codigo. Os checkboxes abaixo preservam o plano original e nao constituem evidencia retroativa de execucao.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add staggered entry animations to columns and tasks on initial load using Framer Motion.

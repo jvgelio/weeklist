@@ -78,6 +78,7 @@ export async function createTask(data: {
   slot?: string
   position: number
   priority?: string | null
+  recurring?: Task['recurring']
   tags?: string[]
 }): Promise<Task> {
   const res = await fetch(`${BASE}/tasks`, {

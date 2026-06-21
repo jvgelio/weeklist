@@ -15,7 +15,12 @@
     "db:seed": "tsx --env-file=.env server/db/seed.ts",
     "db:seed:perf": "tsx --env-file=.env server/db/seeds/perf-seed.ts",
     "perf:baseline": "tsx server/perf/baseline.ts",
-    "test": "vitest run --reporter verbose"
+    "test": "vitest run --reporter verbose",
+    "typecheck:client": "tsc --noEmit -p tsconfig.json",
+    "typecheck:server": "tsc --noEmit -p tsconfig.server.json",
+    "typecheck:config": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck": "npm run typecheck:client && npm run typecheck:config",
+    "verify": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
