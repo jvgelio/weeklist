@@ -1,7 +1,7 @@
 # Criacao contextual de tarefas
 
 **Data:** 2026-06-21  
-**Status:** Aguardando revisao final  
+**Status:** Aprovado  
 **Superficie principal:** visualizacao semanal em colunas
 
 ## Contexto
