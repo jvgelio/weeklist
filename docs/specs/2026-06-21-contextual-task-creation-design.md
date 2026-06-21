@@ -112,13 +112,11 @@ O motion deve explicar que a tarefa nasce naquele periodo. Ele nao deve coreogra
 
 ## Responsividade
 
-Na visualizacao em colunas desktop, a zona usa o espaco livre de cada periodo. Em larguras onde o produto troca para a visualizacao mobile atual, a entrega nao deve forcar cinco colunas comprimidas.
+Na visualizacao em colunas, a zona usa o espaco livre de cada periodo. Isso vale tambem para dispositivos touch com largura suficiente para manter as colunas. Em larguras onde o produto troca para a variante `quiet`, a entrega nao deve forcar cinco colunas comprimidas nem alterar o padrao inline dessa variante.
 
 No mobile:
 
-- toque no espaco livre do periodo abre o compositor contextual;
-- nao existe convite dependente de hover;
-- o compositor ocupa a largura disponivel do bloco;
+- a variante `quiet` e seus acionadores inline permanecem inalterados nesta entrega;
 - o acionador global deve permanecer acessivel sem cobrir a barra de navegacao mobile.
 
 ## Estados obrigatorios
@@ -150,7 +148,7 @@ No mobile:
 3. Tarefas e drag-and-drop continuam funcionando sem acionamentos acidentais.
 4. A transicao mantem continuidade espacial entre zona, campo e nova tarefa.
 5. A criacao global continua disponivel por botao e `Alt+Q`.
-6. O fluxo funciona por mouse, touch e teclado, inclusive com movimento reduzido.
+6. Quando as colunas estiverem renderizadas, o fluxo funciona por mouse, touch e teclado, inclusive com movimento reduzido.
 7. Erros de criacao preservam o texto digitado e permitem nova tentativa.
 
 ## Verificacao esperada
@@ -171,4 +169,3 @@ No mobile:
 - Muitos pontos no fluxo de Tab podem tornar a semana cansativa. As zonas devem entrar na ordem de foco sem criar controles duplicados ou invisiveis.
 - A coexistencia entre contexto herdado e parsing de linguagem natural precisa de feedback visivel para evitar criar no destino errado.
 - Animar altura diretamente pode causar jank em cinco colunas. O plano deve escolher uma estrategia de reveal que preserve layout e desempenho.
-
