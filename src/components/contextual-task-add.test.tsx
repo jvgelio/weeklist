@@ -2,9 +2,8 @@
 
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { addDays, isoDate } from '../lib/constants'
 import { ContextualTaskAdd } from './contextual-task-add'
 
 vi.mock('framer-motion', async (importOriginal) => {
@@ -12,7 +11,16 @@ vi.mock('framer-motion', async (importOriginal) => {
   return { ...actual, useReducedMotion: () => true }
 })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
+
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((done) => { resolve = done })
+  return { promise, resolve }
+}
 
 const baseProps = {
   bucketKey: '2099-01-01',
@@ -51,6 +59,8 @@ describe('ContextualTaskAdd', () => {
   })
 
   it('herda o contexto e permite que tokens explicitos o substituam', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 5, 21, 12))
     const onCreate = vi.fn(async () => undefined)
     const user = userEvent.setup()
     render(<ContextualTaskAdd {...baseProps} open onCreate={onCreate} />)
@@ -63,13 +73,72 @@ describe('ContextualTaskAdd', () => {
     await waitFor(() => {
       expect(onCreate).toHaveBeenCalledWith({
         title: 'Revisar proposta',
-        bucketKey: isoDate(addDays(new Date(), 1)),
+        bucketKey: '2026-06-22',
         slot: 'pm',
         priority: 'high',
         recurring: null,
         tags: ['work'],
       })
     })
+  })
+
+  it('nao fecha outro alvo quando uma criacao pendente resolve', async () => {
+    const pending = deferred()
+    const onClose = vi.fn()
+    const onCreate = vi.fn(() => pending.promise)
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />
+    )
+
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Tarefa A{enter}')
+    await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1))
+    rerender(<ContextualTaskAdd {...baseProps} open={false} onClose={onClose} onCreate={onCreate} />)
+
+    await act(async () => {
+      pending.resolve()
+      await pending.promise
+    })
+
+    expect(onClose).not.toHaveBeenCalled()
+
+    rerender(<ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />)
+    expect(
+      (screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }) as HTMLInputElement).value
+    ).toBe('')
+  })
+
+  it('atualiza a data base quando o composer abre em outro dia', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 5, 21, 23, 59))
+    const user = userEvent.setup()
+    const { rerender } = render(<ContextualTaskAdd {...baseProps} open={false} />)
+
+    vi.setSystemTime(new Date(2026, 5, 22, 0, 1))
+    rerender(<ContextualTaskAdd {...baseProps} open />)
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Planejar tom')
+
+    const dateLabel = new Intl.DateTimeFormat('pt-BR', {
+      weekday: 'short',
+      day: '2-digit',
+    }).format(new Date('2026-06-23T12:00:00'))
+    expect(screen.getByLabelText('Destino da tarefa').textContent).toBe(`${dateLabel} · manha`)
+  })
+
+  it('resolve datas relativas com o dia atual no momento do submit', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 5, 21, 23, 59))
+    const onCreate = vi.fn(async () => undefined)
+    const user = userEvent.setup()
+    render(<ContextualTaskAdd {...baseProps} open onCreate={onCreate} />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Planejar tom')
+    vi.setSystemTime(new Date(2026, 5, 22, 0, 1))
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), '{enter}')
+
+    await waitFor(() => expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({
+      bucketKey: '2026-06-23',
+    })))
   })
 
   it('mostra o destino herdado com data curta e slot em minusculas', () => {

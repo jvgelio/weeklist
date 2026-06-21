@@ -25,6 +25,12 @@ const SLOT_LABEL: Record<Slot, string> = {
 const EASING = [0.25, 1, 0.5, 1] as const
 const ERROR_MESSAGE = 'Nao foi possivel criar a tarefa. Tente novamente.'
 
+function startOfToday(): Date {
+  const date = new Date()
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
 function formatDestination(bucketKey: string, slot: Slot): string {
   const date = new Date(`${bucketKey}T12:00:00`)
   const dateLabel = Number.isNaN(date.getTime())
@@ -52,38 +58,46 @@ export function ContextualTaskAdd({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
+  const [parserToday, setParserToday] = useState(startOfToday)
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const openRef = useRef(open)
+  const currentTargetRef = useRef(`${bucketKey}:${slot}`)
   const reduceMotion = useReducedMotion()
-  const today = useMemo(() => {
-    const date = new Date()
-    date.setHours(0, 0, 0, 0)
-    return date
-  }, [])
-  const parsed = useMemo(() => parseNL(value, today, weekStart), [today, value, weekStart])
+  openRef.current = open
+  currentTargetRef.current = `${bucketKey}:${slot}`
+  const parsed = useMemo(
+    () => parseNL(value, parserToday, weekStart),
+    [parserToday, value, weekStart]
+  )
   const resolvedBucketKey = parsed.date ?? bucketKey
   const resolvedSlot = parsed.slot ?? slot
 
   useEffect(() => {
-    if (open) inputRef.current?.focus()
+    if (open) {
+      setParserToday(startOfToday())
+      inputRef.current?.focus()
+    }
   }, [open])
 
   async function submit() {
-    const title = parsed.cleanTitle || value.trim()
+    const freshParsed = parseNL(value, startOfToday(), weekStart)
+    const title = freshParsed.cleanTitle || value.trim()
     if (!title || submitting) return
+    const submittedTarget = `${bucketKey}:${slot}`
 
     setSubmitting(true)
     setError(null)
     try {
       await onCreate({
         title,
-        bucketKey: resolvedBucketKey,
-        slot: resolvedSlot,
-        priority: parsed.priority,
-        recurring: parsed.recurring,
-        tags: parsed.tags,
+        bucketKey: freshParsed.date ?? bucketKey,
+        slot: freshParsed.slot ?? slot,
+        priority: freshParsed.priority,
+        recurring: freshParsed.recurring,
+        tags: freshParsed.tags,
       })
       setValue('')
-      onClose()
+      if (openRef.current && currentTargetRef.current === submittedTarget) onClose()
     } catch {
       setError(ERROR_MESSAGE)
     } finally {
