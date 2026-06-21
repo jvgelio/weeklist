@@ -7,6 +7,11 @@ import userEvent from '@testing-library/user-event'
 import { addDays, isoDate } from '../lib/constants'
 import { ContextualTaskAdd } from './contextual-task-add'
 
+vi.mock('framer-motion', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('framer-motion')>()
+  return { ...actual, useReducedMotion: () => true }
+})
+
 afterEach(cleanup)
 
 const baseProps = {
@@ -31,6 +36,10 @@ describe('ContextualTaskAdd', () => {
 
     await user.hover(button)
     expect(button.textContent).toBe('Clique para criar')
+    await waitFor(
+      () => expect(button.style.backgroundColor).toBe('rgba(184, 100, 60, 0.08)'),
+      { timeout: 80, interval: 5 }
+    )
 
     await user.click(button)
 

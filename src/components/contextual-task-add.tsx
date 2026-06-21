@@ -229,7 +229,7 @@ export function ContextualTaskAdd({
           exit="rest"
           whileHover="discover"
           whileFocus="discover"
-          transition={{ duration: 0.14, ease: EASING }}
+          transition={{ duration: reduceMotion ? 0 : 0.14, ease: EASING }}
           style={{
             minHeight: 44,
             flex: 1,
