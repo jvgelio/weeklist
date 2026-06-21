@@ -178,7 +178,9 @@ tasksRouter.get('/', async (c) => {
       ))
       .orderBy(tasks.position)
   } else {
-    return c.json({ error: 'Provide either ?from=&to= or ?bucket=' }, 400)
+    taskList = await db.select().from(tasks)
+      .where(eq(tasks.userId, user.id))
+      .orderBy(tasks.bucketKey, tasks.position)
   }
 
   if (!includeSubtasks) {

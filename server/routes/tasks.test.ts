@@ -26,6 +26,35 @@ describe('tasksRouter', () => {
   
   app.route('/', tasksRouter)
 
+  it('GET / should return all tasks if from/to and bucket are missing', async () => {
+    const mockSelect = vi.fn().mockReturnThis()
+    const mockFrom = vi.fn().mockReturnThis()
+    const mockWhere = vi.fn().mockReturnThis()
+    const mockOrderBy = vi.fn().mockResolvedValue([
+      { id: 'task-1', title: 'Task 1', userId: 'test-user-id' },
+      { id: 'task-2', title: 'Task 2', userId: 'test-user-id' }
+    ])
+
+    vi.mocked(db.select).mockReturnValue({
+      from: mockFrom.mockReturnValue({
+        where: mockWhere.mockReturnValue({
+          orderBy: mockOrderBy
+        })
+      })
+    } as any)
+
+    const res = await app.request('/')
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toEqual([
+      { id: 'task-1', title: 'Task 1', userId: 'test-user-id' },
+      { id: 'task-2', title: 'Task 2', userId: 'test-user-id' }
+    ])
+    expect(db.select).toHaveBeenCalled()
+    expect(mockWhere).toHaveBeenCalled()
+    expect(mockOrderBy).toHaveBeenCalled()
+  })
+
   it('GET /occupancy should return 400 if from/to are missing', async () => {
     const res = await app.request('/occupancy')
     expect(res.status).toBe(400)
