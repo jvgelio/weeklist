@@ -26,29 +26,47 @@ npx . list
    ```bash
    week list          # Hoje
    week list tomorrow # Amanhã
-   week list monday   # Próxima segunda
+   week list --all    # Todas as tarefas
+   week list --week   # Semana completa
+   week list --overdue # Atrasadas
    ```
 
 3. **Adicionar tarefa:**
    ```bash
-   week add "Reunião de Vendas" -d monday -s morning
-   week add "Academia" -d daily
+   week add "Reunião de Vendas" -d monday -s pm -t trabalho -n "Levar relatórios"
    ```
 
-4. **Concluir tarefa:**
+4. **Editar tarefa:**
+   ```bash
+   week edit <id> --title "Novo Título" --slot eve --done
+   ```
+
+5. **Concluir tarefa:**
    ```bash
    week done <id>     # Use o ID curto mostrado no comando list
    ```
 
-5. **Remover tarefa:**
+6. **Remover tarefa:**
    ```bash
    week rm <id>
+   ```
+
+7. **Gerenciar Tags:**
+   ```bash
+   week tag list
+   week tag add "Urgente"
+   week tag rm urgente
    ```
 
 ## Para Assistentes de IA
 
 Se você é uma IA ajudando o usuário:
-- **Sempre** rode `week list` antes de tentar editar ou remover tarefas para obter os IDs atuais.
-- IDs são strings curtas (os primeiros caracteres do UUID real).
+- **Use `--json` em todos os comandos** para obter respostas estruturadas e previsíveis.
+- O comando `week list --json` ou `week list --all --json` ajuda a obter o estado de tarefas atual com seus IDs (UUIDs completos).
+- A CLI aceita tanto o ID curto quanto o UUID longo nas operações de `edit`, `done` e `rm`.
+- Ao criar tarefas com `add` ou alterar com `edit`, você pode passar a flag `--json` para receber o payload do objeto criado/editado em JSON e extrair seu ID.
 - Formatos de data suportados: `today`, `tomorrow`, `monday`...`sunday`, `YYYY-MM-DD`.
-- Slots: `am` (manhã), `pm` (tarde), `eve` (noite).
+- Slots válidos: `am` (manhã), `pm` (tarde), `eve` (noite).
+- Tags inexistentes passadas em `--tags` são criadas automaticamente com cores aleatórias pela CLI.
+- Tratamento de erro: se a CLI falhar, o erro virá no `stderr` como `{ "error": "motivo", "code": "CODE" }` se a flag `--json` estiver ativa, com exit codes do processo variando de 1 a 3 conforme o tipo de falha.
+
