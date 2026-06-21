@@ -14,10 +14,6 @@ import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '../hooks/use-
 
 const TODAY = new Date()
 
-async function rejectMissingContextCreate(): Promise<void> {
-  throw new Error('WeekView requires onCreateContextTask to create contextual tasks')
-}
-
 // ---- DayNavBar ----
 
 interface DayNavBarProps {
@@ -320,8 +316,8 @@ interface WeekViewProps {
   onPullOneOverdue: (id: string) => void
   onPullAllOverdue: () => void
   isMobile?: boolean
-  onCreateContextTask?: (params: ContextualTaskCreateParams) => Promise<void>
-  isDraggingTask?: boolean
+  onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
+  isDraggingTask: boolean
 }
 
 export function WeekView({
@@ -333,8 +329,8 @@ export function WeekView({
   overdueTasks, onPullOneOverdue, onPullAllOverdue,
   slotPrefs,
   isMobile = false,
-  onCreateContextTask = rejectMissingContextCreate,
-  isDraggingTask = false,
+  onCreateContextTask,
+  isDraggingTask,
 }: WeekViewProps) {
   const [activeCreateTarget, setActiveCreateTarget] = useState<string | null>(null)
 

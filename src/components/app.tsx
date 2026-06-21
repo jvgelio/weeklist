@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { startOfWeek, addDays, isoDate } from '../lib/constants'
-import type { Task, TaskMap, View, Variant } from '../lib/types'
+import type { ContextualTaskCreateParams, Task, TaskMap, View, Variant } from '../lib/types'
 import * as api from '../lib/api'
 import {
   useWeekTasks,
@@ -291,6 +291,15 @@ export default function App() {
       clientTrace: makeClientTrace('create'),
     })
   }, [createTask, weekTasks, inboxTasks])
+
+  const handleContextualAdd = useCallback(async (params: ContextualTaskCreateParams) => {
+    const tasksInBucket = weekTasks[params.bucketKey] ?? []
+    await createTask.mutateAsync({
+      ...params,
+      position: tasksInBucket.length,
+      clientTrace: makeClientTrace('create'),
+    })
+  }, [createTask, weekTasks])
 
   const handleAddBucketTask = useCallback((bucketKey: string, title: string) => {
     createTask.mutate({
@@ -634,6 +643,8 @@ export default function App() {
               onNextWeek={() => setWeekStart((w) => addDays(w, 7))}
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
               onAddTask={handleAddTask}
+              onCreateContextTask={handleContextualAdd}
+              isDraggingTask={draggingTask !== null}
               onMoveTask={handleMoveTask}
               slotPrefs={slotPrefs}
               overdueTasks={overdueTasks}
