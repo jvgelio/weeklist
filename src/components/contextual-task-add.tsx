@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { parseNL } from '../lib/nl-parse'
 import type { ContextualTaskCreateParams, Slot } from '../lib/types'
@@ -16,26 +16,25 @@ interface ContextualTaskAddProps {
   onCreate: (params: ContextualTaskCreateParams) => Promise<void>
 }
 
-const SLOT_LABELS: Record<Slot, string> = {
-  am: 'Manha',
-  pm: 'Tarde',
-  eve: 'Noite',
+const SLOT_LABEL: Record<Slot, string> = {
+  am: 'manha',
+  pm: 'tarde',
+  eve: 'noite',
 }
 
 const EASING = [0.25, 1, 0.5, 1] as const
 const ERROR_MESSAGE = 'Nao foi possivel criar a tarefa. Tente novamente.'
 
-function destinationLabel(bucketKey: string, slot: Slot): string {
+function formatDestination(bucketKey: string, slot: Slot): string {
   const date = new Date(`${bucketKey}T12:00:00`)
   const dateLabel = Number.isNaN(date.getTime())
     ? bucketKey
     : new Intl.DateTimeFormat('pt-BR', {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short',
-      }).format(date)
+      weekday: 'short',
+      day: '2-digit',
+    }).format(date)
 
-  return `${dateLabel} - ${SLOT_LABELS[slot]}`
+  return `${dateLabel} · ${SLOT_LABEL[slot]}`
 }
 
 export function ContextualTaskAdd({
@@ -53,6 +52,7 @@ export function ContextualTaskAdd({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
   const reduceMotion = useReducedMotion()
   const today = useMemo(() => {
     const date = new Date()
@@ -62,6 +62,10 @@ export function ContextualTaskAdd({
   const parsed = useMemo(() => parseNL(value, today, weekStart), [today, value, weekStart])
   const resolvedBucketKey = parsed.date ?? bucketKey
   const resolvedSlot = parsed.slot ?? slot
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [open])
 
   async function submit() {
     const title = parsed.cleanTitle || value.trim()
@@ -102,7 +106,7 @@ export function ContextualTaskAdd({
       }
 
   return (
-    <AnimatePresence initial={false} mode="wait">
+    <AnimatePresence initial={false}>
       {open ? (
         <motion.form
           key="composer"
@@ -138,13 +142,13 @@ export function ContextualTaskAdd({
                 Titulo da nova tarefa
               </span>
               <HighlightedInput
+                inputRef={inputRef}
                 value={value}
                 tokens={parsed.tokens}
                 onChange={(nextValue) => {
                   setValue(nextValue)
                   setError(null)
                 }}
-                autoFocus
                 maxLength={255}
                 placeholder="O que precisa ser feito?"
                 inputClassName="task-input"
@@ -185,7 +189,7 @@ export function ContextualTaskAdd({
               fontWeight: 600,
             }}
           >
-            {destinationLabel(resolvedBucketKey, resolvedSlot)}
+            {formatDestination(resolvedBucketKey, resolvedSlot)}
           </div>
 
           {error && (
@@ -208,18 +212,30 @@ export function ContextualTaskAdd({
           onMouseLeave={() => setHintVisible(false)}
           onFocus={() => setHintVisible(true)}
           onBlur={() => setHintVisible(false)}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          whileHover={{ opacity: disabled ? 1 : 0.78 }}
-          whileFocus={{ opacity: disabled ? 1 : 0.78 }}
+          variants={{
+            rest: {
+              opacity: 1,
+              backgroundColor: 'rgba(0, 0, 0, 0)',
+              borderColor: 'rgba(0, 0, 0, 0)',
+            },
+            discover: {
+              opacity: 1,
+              backgroundColor: 'rgba(184, 100, 60, 0.08)',
+              borderColor: 'rgba(184, 100, 60, 0.22)',
+            },
+          }}
+          initial="rest"
+          animate="rest"
+          exit="rest"
+          whileHover="discover"
+          whileFocus="discover"
           transition={{ duration: 0.14, ease: EASING }}
           style={{
             minHeight: 44,
             flex: 1,
             width: '100%',
             position: 'relative',
-            border: 0,
+            border: '1px solid transparent',
             borderRadius: 8,
             background: 'transparent',
             color: 'var(--ink-faint)',
@@ -242,7 +258,7 @@ export function ContextualTaskAdd({
                 fontSize: 12,
               }}
             >
-              Adicionar tarefa
+              Clique para criar
             </motion.span>
           )}
         </motion.button>

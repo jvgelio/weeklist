@@ -4,7 +4,7 @@ import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { addDays, isoDate, startOfWeek } from '../lib/constants'
+import { addDays, isoDate } from '../lib/constants'
 import { ContextualTaskAdd } from './contextual-task-add'
 
 afterEach(cleanup)
@@ -12,7 +12,7 @@ afterEach(cleanup)
 const baseProps = {
   bucketKey: '2099-01-01',
   slot: 'am' as const,
-  weekStart: startOfWeek(new Date(), 1),
+  weekStart: new Date(2026, 5, 22),
   accessibleLabel: 'Adicionar tarefa na manha',
   disabled: false,
   onOpen: vi.fn(),
@@ -30,7 +30,7 @@ describe('ContextualTaskAdd', () => {
     expect(button.textContent).toBe('')
 
     await user.hover(button)
-    expect(button.textContent).toBe('Adicionar tarefa')
+    expect(button.textContent).toBe('Clique para criar')
 
     await user.click(button)
 
@@ -61,6 +61,18 @@ describe('ContextualTaskAdd', () => {
         tags: ['work'],
       })
     })
+  })
+
+  it('mostra o destino herdado com data curta e slot em minusculas', () => {
+    render(<ContextualTaskAdd {...baseProps} open />)
+    const date = new Date(`${baseProps.bucketKey}T12:00:00`)
+    const dateLabel = new Intl.DateTimeFormat('pt-BR', {
+      weekday: 'short',
+      day: '2-digit',
+    }).format(date)
+
+    expect(screen.getByLabelText('Destino da tarefa').textContent).toBe(`${dateLabel} · manha`)
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }))
   })
 
   it('preserva o texto e mostra erro quando a criacao falha', async () => {
