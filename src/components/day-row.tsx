@@ -520,39 +520,46 @@ export function WeekendColumnsStrip({
 }: WeekendColumnsStripProps) {
   const [expanded, setExpanded] = useState(false)
   const totalTasks = days.reduce((sum, d) => sum + (tasks[isoDate(d)]?.length ?? 0), 0)
+  const contentId = `weekend-columns-${days[0] ? isoDate(days[0]) : 'empty'}`
 
   return (
     <div style={{ flexShrink: 0 }}>
-      <button onClick={() => setExpanded(e => !e)} className="ghost-btn"
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="ghost-btn"
+        aria-expanded={expanded}
+        aria-controls={contentId}
         style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', padding: '4px 10px', marginBottom: 6 }}>
         ▸ Fim de semana · {totalTasks} {totalTasks === 1 ? 'tarefa' : 'tarefas'}
       </button>
-      {expanded && (
-        <div style={{ display: 'flex', gap: 10, height: 200 }}>
-          {days.map(d => (
-            <DayColumn
-              key={isoDate(d)}
-              date={d}
-              weekStart={weekStart}
-              tasks={tasks[isoDate(d)] ?? []}
-              isToday={sameDay(d, new Date())}
-              isWeekend
-              compact
-              accent={accent}
-              onOpenTask={onOpenTask}
-              onAddTask={onAddTask}
-              onUpdateTask={onUpdateTask}
-              onDeleteTask={onDeleteTask}
-              slotPrefs={slotPrefs}
-              dimPastDays={dimPastDays}
-              activeCreateTarget={activeCreateTarget}
-              onActiveCreateTargetChange={onActiveCreateTargetChange}
-              onCreateContextTask={onCreateContextTask}
-              isDraggingTask={isDraggingTask}
-            />
-          ))}
-        </div>
-      )}
+      <div
+        id={contentId}
+        hidden={!expanded}
+        style={{ display: expanded ? 'flex' : 'none', gap: 10, height: 200 }}
+      >
+        {days.map(d => (
+          <DayColumn
+            key={isoDate(d)}
+            date={d}
+            weekStart={weekStart}
+            tasks={tasks[isoDate(d)] ?? []}
+            isToday={sameDay(d, new Date())}
+            isWeekend
+            compact
+            accent={accent}
+            onOpenTask={onOpenTask}
+            onAddTask={onAddTask}
+            onUpdateTask={onUpdateTask}
+            onDeleteTask={onDeleteTask}
+            slotPrefs={slotPrefs}
+            dimPastDays={dimPastDays}
+            activeCreateTarget={activeCreateTarget}
+            onActiveCreateTargetChange={onActiveCreateTargetChange}
+            onCreateContextTask={onCreateContextTask}
+            isDraggingTask={isDraggingTask}
+          />
+        ))}
+      </div>
     </div>
   )
 }
