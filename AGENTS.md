@@ -126,6 +126,11 @@ Nao exija `lint` enquanto o projeto nao tiver linter e script configurados.
 - Mudancas de schema devem atualizar [docs/domain/invariants.md](docs/domain/invariants.md) quando alterarem relacoes ou regras.
 - Operacoes de reordenacao ou migracao com multiplas escritas devem ser transacionais.
 
+### CLI e repositório standalone
+
+- A CLI possui um repositório separado em `https://github.com/jvgelio/weeklist-cli.git`.
+- Qualquer modificação realizada no diretório `cli/` do repositório principal deve ser replicada e enviada (push) também para o repositório standalone, de modo a atualizar o pacote independente de instalação.
+
 ## Variaveis de ambiente
 
 ```text
