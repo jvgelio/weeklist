@@ -228,6 +228,7 @@ interface DayColumnProps {
   onActiveCreateTargetChange: (target: string | null) => void
   onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
   isDraggingTask: boolean
+  droppableDisabled?: boolean
 }
 
 function DayColumnComponent({
@@ -236,12 +237,13 @@ function DayColumnComponent({
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, slotPrefs,
   dimPastDays,
   activeCreateTarget, onActiveCreateTargetChange, onCreateContextTask, isDraggingTask,
+  droppableDisabled = false,
 }: DayColumnProps) {
   const key = isoDate(date)
 
-  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' } })
-  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' } })
-  const { setNodeRef: setEveRef, isOver: isOverEve } = useDroppable({ id: `${key}:eve`, data: { type: 'zone', bucketKey: key, slot: 'eve' } })
+  const { setNodeRef: setAmRef, isOver: isOverAm } = useDroppable({ id: `${key}:am`, data: { type: 'zone', bucketKey: key, slot: 'am' }, disabled: droppableDisabled })
+  const { setNodeRef: setPmRef, isOver: isOverPm } = useDroppable({ id: `${key}:pm`, data: { type: 'zone', bucketKey: key, slot: 'pm' }, disabled: droppableDisabled })
+  const { setNodeRef: setEveRef, isOver: isOverEve } = useDroppable({ id: `${key}:eve`, data: { type: 'zone', bucketKey: key, slot: 'eve' }, disabled: droppableDisabled })
 
   const dayIdx = date.getDay()
   const dayShort = DAY_NAMES_PT[dayIdx]
@@ -557,6 +559,7 @@ export function WeekendColumnsStrip({
             onActiveCreateTargetChange={onActiveCreateTargetChange}
             onCreateContextTask={onCreateContextTask}
             isDraggingTask={isDraggingTask}
+            droppableDisabled={!expanded}
           />
         ))}
       </div>
