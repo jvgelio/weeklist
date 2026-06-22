@@ -128,6 +128,9 @@ describe('ContextualTaskAdd', () => {
       expect(screen.queryByRole('textbox', { name: 'Titulo da nova tarefa' })).toBeNull()
       expect(screen.queryByRole('button', { name: baseProps.accessibleLabel })).toBeNull()
     })
+    const pendingStatus = screen.getByRole('status', { name: 'Criando tarefa' })
+    expect(pendingStatus.getAttribute('aria-live')).toBe('polite')
+    expect(document.activeElement).toBe(pendingStatus)
     expect(onClose).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -158,6 +161,9 @@ describe('ContextualTaskAdd', () => {
     expect((await screen.findByRole('textbox', {
       name: 'Titulo da nova tarefa',
     }) as HTMLInputElement).value).toBe('Tarefa A')
+    expect(document.activeElement).toBe(screen.getByRole('textbox', {
+      name: 'Titulo da nova tarefa',
+    }))
     expect(screen.getByRole('alert').textContent).toContain('Nao foi possivel criar a tarefa')
   })
 
@@ -209,6 +215,10 @@ describe('ContextualTaskAdd', () => {
     await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Tarefa A{enter}')
     await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1))
     rerender(<ContextualTaskAdd {...baseProps} open={false} onClose={onClose} onCreate={onCreate} />)
+    const newerTarget = document.createElement('button')
+    newerTarget.textContent = 'Novo alvo'
+    document.body.appendChild(newerTarget)
+    newerTarget.focus()
 
     await act(async () => {
       pending.resolve()
@@ -216,6 +226,7 @@ describe('ContextualTaskAdd', () => {
     })
 
     expect(onClose).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(newerTarget)
 
     rerender(<ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />)
     expect(

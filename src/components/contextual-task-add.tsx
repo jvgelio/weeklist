@@ -61,6 +61,7 @@ export function ContextualTaskAdd({
   const [hintVisible, setHintVisible] = useState(false)
   const [parserToday, setParserToday] = useState(startOfToday)
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null)
+  const pendingStatusRef = useRef<HTMLDivElement | null>(null)
   const openRef = useRef(open)
   const currentTargetRef = useRef(`${bucketKey}:${slot}`)
   const reduceMotion = useReducedMotion()
@@ -76,9 +77,13 @@ export function ContextualTaskAdd({
   useEffect(() => {
     if (open) {
       setParserToday(startOfToday())
-      inputRef.current?.focus()
+      if (optimisticallyHidden) {
+        pendingStatusRef.current?.focus()
+      } else {
+        inputRef.current?.focus()
+      }
     }
-  }, [open])
+  }, [open, optimisticallyHidden])
 
   async function submit() {
     const freshParsed = parseNL(value, startOfToday(), weekStart)
@@ -127,7 +132,31 @@ export function ContextualTaskAdd({
 
   return (
     <AnimatePresence initial={false}>
-      {optimisticallyHidden ? null : open ? (
+      {optimisticallyHidden ? (
+        <motion.div
+          key="pending"
+          {...enterExit}
+          transition={{ duration: reduceMotion ? 0.14 : 0.18, ease: EASING }}
+        >
+          <div
+            ref={pendingStatusRef}
+            role="status"
+            aria-label="Criando tarefa"
+            aria-live="polite"
+            tabIndex={-1}
+            style={{
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              padding: '6px 8px',
+              color: 'var(--ink-mute)',
+              fontSize: 12,
+            }}
+          >
+            Criando tarefa...
+          </div>
+        </motion.div>
+      ) : open ? (
         <motion.form
           key="composer"
           {...enterExit}
