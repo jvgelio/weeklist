@@ -205,7 +205,7 @@ describe('WeekView mobile quiet layout', () => {
     const content = header.parentElement?.parentElement
     const layout = content?.parentElement
 
-    expect(screen.getByRole('button', { name: 'Weeklist0' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Weeklist, 0 tarefas' })).not.toBeNull()
     expect(screen.queryByText('Nenhuma tarefa pendente na weeklist.')).toBeNull()
     expect(layout?.style.flexDirection).toBe('column')
     expect(content?.style.width).toBe('100%')

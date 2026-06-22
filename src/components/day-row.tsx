@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useId, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
@@ -705,18 +705,23 @@ interface WeeklistProps {
 export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask, onUpdateTask, onDeleteTask }: WeeklistProps) {
   const { setNodeRef, isOver } = useDroppable({ id: bucketKey, data: { type: 'zone', bucketKey, slot: null } })
   const [expanded, setExpanded] = useState(false)
+  const contentId = useId()
+  const taskCountLabel = `${tasks.length} ${tasks.length === 1 ? 'tarefa' : 'tarefas'}`
   const taskProps = { accent, compact: true, onOpen: onOpenTask, onChange: onUpdateTask, onDelete: onDeleteTask, showDragHandle: false }
 
   return (
-    <div style={{
+    <div ref={setNodeRef} style={{
       borderTop: '1px solid var(--line)',
-      background: 'var(--bg-sunken)',
+      background: isOver ? 'var(--accent-soft)' : 'var(--bg-sunken)',
       transition: 'all 200ms ease',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px' }}>
         <button
           onClick={() => setExpanded(e => !e)}
           className="ghost-btn"
+          aria-label={`Weeklist, ${taskCountLabel}`}
+          aria-expanded={expanded}
+          aria-controls={contentId}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: '12px', fontSize: 13, fontWeight: 700, color: 'var(--ink-mute)', gap: 8,
@@ -734,7 +739,7 @@ export function WeeklistStrip({ bucketKey, tasks, accent, onOpenTask, onAddTask,
 
       {expanded && (
         <div
-          ref={setNodeRef}
+          id={contentId}
           style={{
             padding: '0 24px 32px',
             background: isOver ? 'var(--accent-soft)' : 'transparent',
