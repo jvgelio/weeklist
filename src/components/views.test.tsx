@@ -138,12 +138,17 @@ describe('WeekView global task creation', () => {
     expect(onOpenQuickAdd).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps one accessible 44px action in the mobile quiet variant', () => {
-    render(<WeekViewHarness isMobile variant="quiet" />)
+  it('keeps one accessible 44px action in the mobile quiet variant', async () => {
+    const user = userEvent.setup()
+    const onOpenQuickAdd = vi.fn()
+
+    render(<WeekViewHarness isMobile variant="quiet" onOpenQuickAdd={onOpenQuickAdd} />)
 
     const actions = screen.getAllByRole('button', { name: 'Nova tarefa' })
     expect(actions).toHaveLength(1)
     expect(actions[0].style.minWidth).toBe('44px')
     expect(actions[0].style.minHeight).toBe('44px')
+    await user.click(actions[0])
+    expect(onOpenQuickAdd).toHaveBeenCalledTimes(1)
   })
 })
