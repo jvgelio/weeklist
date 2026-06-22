@@ -527,8 +527,15 @@ export function WeekView({
           <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
         </>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            minHeight: 0,
+            ...(isMobile ? { width: '100%' } : {}),
+          }}>
             {renderHeader()}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidePad }} id="list-scroll-container">
               <DayNavBar days={days} showWeekend={showWeekend} accent={accent} />
@@ -564,7 +571,11 @@ export function WeekView({
               )}
             </div>
           </div>
-          <WeeklistPanel bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
+          {isMobile ? (
+            <WeeklistStrip bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
+          ) : (
+            <WeeklistPanel bucketKey={weeklistKey} tasks={weeklistTasks} {...dayProps} />
+          )}
         </div>
       )}
     </motion.div>

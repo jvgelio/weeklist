@@ -31,7 +31,7 @@ afterAll(() => {
   }
 })
 
-const weekStart = new Date(2026, 5, 22)
+const weekStart = new Date(2026, 5, 15)
 
 interface WeekViewHarnessProps {
   isDraggingTask?: boolean
@@ -194,5 +194,21 @@ describe('WeekView global task creation', () => {
     expect(heading.style.textOverflow).toBe('ellipsis')
     expect(controls?.style.width).toBe('100%')
     expect(controls?.style.maxWidth).toBe('100%')
+  })
+})
+
+describe('WeekView mobile quiet layout', () => {
+  it('keeps the week content full-width and renders the weeklist as a bottom strip', () => {
+    render(<WeekViewHarness isMobile variant="quiet" />)
+
+    const header = screen.getByRole('banner')
+    const content = header.parentElement?.parentElement
+    const layout = content?.parentElement
+
+    expect(screen.getByRole('button', { name: 'Weeklist0' })).not.toBeNull()
+    expect(screen.queryByText('Nenhuma tarefa pendente na weeklist.')).toBeNull()
+    expect(layout?.style.flexDirection).toBe('column')
+    expect(content?.style.width).toBe('100%')
+    expect(content?.style.minWidth).toBe('0px')
   })
 })
