@@ -4,15 +4,31 @@ import React from 'react'
 import { DndContext } from '@dnd-kit/core'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WeekView } from './views'
 
+const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollIntoView')
+const scrollIntoViewMock = vi.fn()
+
 beforeAll(() => {
-  Element.prototype.scrollIntoView = vi.fn()
+  Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    configurable: true,
+    writable: true,
+    value: scrollIntoViewMock,
+  })
 })
 
 afterEach(() => {
   cleanup()
+  scrollIntoViewMock.mockClear()
+})
+
+afterAll(() => {
+  if (scrollIntoViewDescriptor) {
+    Object.defineProperty(Element.prototype, 'scrollIntoView', scrollIntoViewDescriptor)
+  } else {
+    delete (Element.prototype as { scrollIntoView?: Element['scrollIntoView'] }).scrollIntoView
+  }
 })
 
 const weekStart = new Date(2026, 5, 22)
@@ -22,6 +38,7 @@ interface WeekViewHarnessProps {
   isMobile?: boolean
   onOpenQuickAdd?: () => void
   variant?: 'columns' | 'quiet'
+  weekStart?: Date
 }
 
 function WeekViewHarness({
@@ -29,11 +46,12 @@ function WeekViewHarness({
   isMobile = false,
   onOpenQuickAdd = vi.fn(),
   variant = 'columns',
+  weekStart: harnessWeekStart = weekStart,
 }: WeekViewHarnessProps) {
   return (
     <DndContext>
       <WeekView
-        weekStart={weekStart}
+        weekStart={harnessWeekStart}
         tasks={{}}
         variant={variant}
         showWeekend
@@ -150,5 +168,31 @@ describe('WeekView global task creation', () => {
     expect(actions[0].style.minHeight).toBe('44px')
     await user.click(actions[0])
     expect(onOpenQuickAdd).toHaveBeenCalledTimes(1)
+  })
+
+  it('separates and constrains a cross-month mobile header at 320px', () => {
+    render(
+      <div style={{ width: 320, overflow: 'hidden' }}>
+        <WeekViewHarness
+          isMobile
+          variant="quiet"
+          weekStart={new Date(2026, 5, 29)}
+        />
+      </div>,
+    )
+
+    const header = screen.getByRole('banner')
+    const heading = screen.getByRole('heading', { level: 1 })
+    const titleContainer = heading.parentElement?.parentElement
+    const controls = screen.getByRole('button', { name: 'Nova tarefa' }).parentElement
+
+    expect(heading.textContent).toMatch(/jun.*jul/i)
+    expect(header.style.flexDirection).toBe('column')
+    expect(header.style.alignItems).toBe('stretch')
+    expect(titleContainer?.style.minWidth).toBe('0px')
+    expect(heading.style.overflow).toBe('hidden')
+    expect(heading.style.textOverflow).toBe('ellipsis')
+    expect(controls?.style.width).toBe('100%')
+    expect(controls?.style.maxWidth).toBe('100%')
   })
 })

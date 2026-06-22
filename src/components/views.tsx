@@ -401,12 +401,16 @@ export function WeekView({
       flexShrink: 0,
     }}>
       <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 20, marginBottom: 0,
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
+        justifyContent: 'space-between',
+        gap: isMobile ? 12 : 20,
+        marginBottom: 0,
         flexWrap: 'nowrap',
       }}>
         {/* Title Area */}
-        <div style={isMobile ? { flex: 1 } : (isColumns ? { flex: 1 } : { flex: 1, paddingLeft: 'max(0px, calc(50% - 400px))' })}>
+        <div style={isMobile ? { width: '100%', minWidth: 0 } : (isColumns ? { flex: 1 } : { flex: 1, paddingLeft: 'max(0px, calc(50% - 400px))' })}>
           <div>
             <div style={{
               fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
@@ -422,6 +426,7 @@ export function WeekView({
               lineHeight: 1.2,
               color: 'var(--ink)',
               whiteSpace: 'nowrap',
+              ...(isMobile ? { maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' } : {}),
             }}>
               {rangeLabel}
             </h1>
@@ -429,7 +434,10 @@ export function WeekView({
         </div>
 
         {/* Toggles Area */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, flexShrink: 0,
+          ...(isMobile ? { width: '100%', maxWidth: '100%', minWidth: 0, justifyContent: 'flex-end' } : {}),
+        }}>
           <button
             type="button"
             className="pill-btn"
