@@ -44,6 +44,15 @@ export interface ContextualTaskCreateParams {
   tags: string[]
 }
 
+export interface ContextualTaskCreateOptions {
+  onOptimistic: () => void
+}
+
+export type ContextualTaskCreateHandler = (
+  params: ContextualTaskCreateParams,
+  options: ContextualTaskCreateOptions,
+) => Promise<void>
+
 // Tasks grouped by bucket key
 export type TaskMap = Record<string, Task[]>
 

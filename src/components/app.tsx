@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { startOfWeek, addDays, isoDate } from '../lib/constants'
-import type { ContextualTaskCreateParams, Task, TaskMap, View, Variant } from '../lib/types'
+import type { ContextualTaskCreateHandler, Task, TaskMap, View, Variant } from '../lib/types'
 import * as api from '../lib/api'
 import {
   useWeekTasks,
@@ -300,11 +300,12 @@ export default function App() {
     })
   }, [createTask, weekTasks, inboxTasks])
 
-  const handleContextualAdd = useCallback(async (params: ContextualTaskCreateParams) => {
+  const handleContextualAdd = useCallback<ContextualTaskCreateHandler>(async (params, options) => {
     const position = await resolveContextualTaskPosition(weekTasks, params.bucketKey)
     await createTask.mutateAsync({
       ...params,
       position,
+      onOptimistic: options.onOptimistic,
       clientTrace: makeClientTrace('create'),
     })
   }, [createTask, weekTasks])

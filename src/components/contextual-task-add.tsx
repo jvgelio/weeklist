@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { parseNL } from '../lib/nl-parse'
-import type { ContextualTaskCreateParams, Slot } from '../lib/types'
+import type { ContextualTaskCreateHandler, Slot } from '../lib/types'
 import { HighlightedInput } from './highlighted-input'
 
 interface ContextualTaskAddProps {
@@ -13,7 +13,7 @@ interface ContextualTaskAddProps {
   disabled: boolean
   onOpen: () => void
   onClose: () => void
-  onCreate: (params: ContextualTaskCreateParams) => Promise<void>
+  onCreate: ContextualTaskCreateHandler
 }
 
 const SLOT_LABEL: Record<Slot, string> = {
@@ -56,6 +56,7 @@ export function ContextualTaskAdd({
 }: ContextualTaskAddProps) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [optimisticallyHidden, setOptimisticallyHidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hintVisible, setHintVisible] = useState(false)
   const [parserToday, setParserToday] = useState(startOfToday)
@@ -88,17 +89,22 @@ export function ContextualTaskAdd({
     setSubmitting(true)
     setError(null)
     try {
-      await onCreate({
-        title,
-        bucketKey: freshParsed.date ?? bucketKey,
-        slot: freshParsed.slot ?? slot,
-        priority: freshParsed.priority,
-        recurring: freshParsed.recurring,
-        tags: freshParsed.tags,
-      })
+      await onCreate(
+        {
+          title,
+          bucketKey: freshParsed.date ?? bucketKey,
+          slot: freshParsed.slot ?? slot,
+          priority: freshParsed.priority,
+          recurring: freshParsed.recurring,
+          tags: freshParsed.tags,
+        },
+        { onOptimistic: () => setOptimisticallyHidden(true) }
+      )
       setValue('')
+      setOptimisticallyHidden(false)
       if (openRef.current && currentTargetRef.current === submittedTarget) onClose()
     } catch {
+      setOptimisticallyHidden(false)
       setError(ERROR_MESSAGE)
     } finally {
       setSubmitting(false)
@@ -121,7 +127,7 @@ export function ContextualTaskAdd({
 
   return (
     <AnimatePresence initial={false}>
-      {open ? (
+      {optimisticallyHidden ? null : open ? (
         <motion.form
           key="composer"
           {...enterExit}

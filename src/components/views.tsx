@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { MONTH_PT, DAY_NAMES_PT, PRESET_COLORS, isoDate, sameDay, addDays, startOfWeek } from '../lib/constants'
-import type { ContextualTaskCreateParams, Task, TaskMap, Variant, Tag, SlotPrefs } from '../lib/types'
+import type { ContextualTaskCreateHandler, Task, TaskMap, Variant, Tag, SlotPrefs } from '../lib/types'
 import {
   DayRow, DayColumn,
   WeekendStrip, WeekendColumnsStrip,
@@ -317,7 +317,7 @@ interface WeekViewProps {
   onPullOneOverdue: (id: string) => void
   onPullAllOverdue: () => void
   isMobile?: boolean
-  onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
+  onCreateContextTask: ContextualTaskCreateHandler
   isDraggingTask: boolean
 }
 

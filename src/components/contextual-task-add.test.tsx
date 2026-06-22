@@ -18,8 +18,12 @@ afterEach(() => {
 
 function deferred() {
   let resolve!: () => void
-  const promise = new Promise<void>((done) => { resolve = done })
-  return { promise, resolve }
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<void>((done, fail) => {
+    resolve = done
+    reject = fail
+  })
+  return { promise, resolve, reject }
 }
 
 const baseProps = {
@@ -71,21 +75,132 @@ describe('ContextualTaskAdd', () => {
     )
 
     await waitFor(() => {
-      expect(onCreate).toHaveBeenCalledWith({
-        title: 'Revisar proposta',
-        bucketKey: '2026-06-22',
-        slot: 'pm',
-        priority: 'high',
-        recurring: null,
-        tags: ['work'],
-      })
+      expect(onCreate).toHaveBeenCalledWith(
+        {
+          title: 'Revisar proposta',
+          bucketKey: '2026-06-22',
+          slot: 'pm',
+          priority: 'high',
+          recurring: null,
+          tags: ['work'],
+        },
+        { onOptimistic: expect.any(Function) }
+      )
     })
+  })
+
+  it('envia o contexto herdado e metadados nulos sem tokens', async () => {
+    const onCreate = vi.fn(async () => undefined)
+    const user = userEvent.setup()
+    render(<ContextualTaskAdd {...baseProps} open onCreate={onCreate} />)
+
+    await user.type(
+      screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }),
+      'Revisar proposta{enter}'
+    )
+
+    await waitFor(() => expect(onCreate).toHaveBeenCalledWith(
+      {
+        title: 'Revisar proposta',
+        bucketKey: baseProps.bucketKey,
+        slot: baseProps.slot,
+        priority: null,
+        recurring: null,
+        tags: [],
+      },
+      { onOptimistic: expect.any(Function) }
+    ))
+  })
+
+  it('substitui o composer assim que a tarefa otimista entra e fecha apos sucesso', async () => {
+    const pending = deferred()
+    const onClose = vi.fn()
+    const onCreate = vi.fn((_params, options) => {
+      options.onOptimistic()
+      return pending.promise
+    })
+    const user = userEvent.setup()
+    render(<ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Tarefa A{enter}')
+
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: 'Titulo da nova tarefa' })).toBeNull()
+      expect(screen.queryByRole('button', { name: baseProps.accessibleLabel })).toBeNull()
+    })
+    expect(onClose).not.toHaveBeenCalled()
+
+    await act(async () => {
+      pending.resolve()
+      await pending.promise
+    })
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('restaura o composer com draft e erro quando a criacao otimista falha', async () => {
+    const pending = deferred()
+    const onCreate = vi.fn((_params, options) => {
+      options.onOptimistic()
+      return pending.promise
+    })
+    const user = userEvent.setup()
+    render(<ContextualTaskAdd {...baseProps} open onCreate={onCreate} />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Tarefa A{enter}')
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
+
+    await act(async () => {
+      pending.reject(new Error('failed'))
+      await pending.promise.catch(() => undefined)
+    })
+
+    expect((await screen.findByRole('textbox', {
+      name: 'Titulo da nova tarefa',
+    }) as HTMLInputElement).value).toBe('Tarefa A')
+    expect(screen.getByRole('alert').textContent).toContain('Nao foi possivel criar a tarefa')
+  })
+
+  it('guarda o erro no alvo original sem reabri-lo quando outro alvo esta ativo', async () => {
+    const pending = deferred()
+    const onClose = vi.fn()
+    const onCreate = vi.fn((_params, options) => {
+      options.onOptimistic()
+      return pending.promise
+    })
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />
+    )
+
+    await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), 'Tarefa A{enter}')
+    await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull())
+    rerender(
+      <ContextualTaskAdd {...baseProps} open={false} onClose={onClose} onCreate={onCreate} />
+    )
+
+    await act(async () => {
+      pending.reject(new Error('failed'))
+      await pending.promise.catch(() => undefined)
+    })
+
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
+
+    rerender(<ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />)
+    expect((screen.getByRole('textbox', {
+      name: 'Titulo da nova tarefa',
+    }) as HTMLInputElement).value).toBe('Tarefa A')
+    expect(screen.getByRole('alert').textContent).toContain('Nao foi possivel criar a tarefa')
   })
 
   it('nao fecha outro alvo quando uma criacao pendente resolve', async () => {
     const pending = deferred()
     const onClose = vi.fn()
-    const onCreate = vi.fn(() => pending.promise)
+    const onCreate = vi.fn((_params, options) => {
+      options.onOptimistic()
+      return pending.promise
+    })
     const user = userEvent.setup()
     const { rerender } = render(
       <ContextualTaskAdd {...baseProps} open onClose={onClose} onCreate={onCreate} />
@@ -136,9 +251,10 @@ describe('ContextualTaskAdd', () => {
     vi.setSystemTime(new Date(2026, 5, 22, 0, 1))
     await user.type(screen.getByRole('textbox', { name: 'Titulo da nova tarefa' }), '{enter}')
 
-    await waitFor(() => expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({
-      bucketKey: '2026-06-23',
-    })))
+    await waitFor(() => expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ bucketKey: '2026-06-23' }),
+      { onOptimistic: expect.any(Function) }
+    ))
   })
 
   it('mostra o destino herdado com data curta e slot em minusculas', () => {

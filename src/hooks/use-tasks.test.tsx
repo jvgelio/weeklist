@@ -65,6 +65,34 @@ afterEach(() => {
 })
 
 describe('useCreateTask', () => {
+  it('notifies optimistic insertion only after the temporary task is cached', async () => {
+    const request = deferred<Task>()
+    vi.mocked(api.createTask).mockReturnValueOnce(request.promise)
+    const { queryClient, weekKey, wrapper } = setup()
+    const { result } = renderHook(() => useCreateTask(), { wrapper })
+    const onOptimistic = vi.fn(() => {
+      expect(queryClient.getQueryData<TaskMap>(weekKey)?.['2026-06-23']).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: expect.stringMatching(/^temp-/), title: 'Optimistic task' }),
+        ])
+      )
+    })
+
+    const mutation = result.current.mutateAsync({
+      title: 'Optimistic task',
+      bucketKey: '2026-06-23',
+      slot: 'am',
+      position: 1,
+      onOptimistic,
+    })
+
+    await waitFor(() => expect(onOptimistic).toHaveBeenCalledTimes(1))
+    expect(api.createTask).toHaveBeenCalledWith(expect.not.objectContaining({ onOptimistic }))
+
+    request.resolve({ ...existingTask(), id: 'created-task', title: 'Optimistic task', position: 1 })
+    await mutation
+  })
+
   it('preserves submitted metadata in the optimistic week cache', async () => {
     const request = deferred<Task>()
     vi.mocked(api.createTask).mockReturnValueOnce(request.promise)

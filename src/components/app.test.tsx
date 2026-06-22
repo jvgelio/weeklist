@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as api from '../lib/api'
@@ -67,6 +67,14 @@ describe('resolveContextualTaskPosition', () => {
 })
 
 describe('App global task creation', () => {
+  it('opens QuickAdd with Alt+Q', () => {
+    render(<App />)
+
+    fireEvent.keyDown(window, { key: 'q', altKey: true })
+
+    expect(screen.getByPlaceholderText('Nome da tarefa')).toBeTruthy()
+  })
+
   it('opens QuickAdd from the visible Nova tarefa action', async () => {
     const user = userEvent.setup()
     render(<App />)

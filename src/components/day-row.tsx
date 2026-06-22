@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, rectSortingStrategy } from '@dnd-kit/sortable'
 import { DAY_NAMES_PT, DAY_NAMES_LONG_PT, MONTH_PT, sameDay, isPastDay } from '../lib/constants'
-import type { ContextualTaskCreateParams, Slot, Task, SlotPrefs } from '../lib/types'
+import type { ContextualTaskCreateHandler, Slot, Task, SlotPrefs } from '../lib/types'
 import { getDisplaySlot } from '../lib/slot-utils'
 import { TaskRow, InlineAdd, LunchDivider, IconSun, IconMoon, IconEvening, IconChevron } from './task-components'
 import { ContextualTaskAdd } from './contextual-task-add'
@@ -226,7 +226,7 @@ interface DayColumnProps {
   dimPastDays: boolean
   activeCreateTarget: string | null
   onActiveCreateTargetChange: (target: string | null) => void
-  onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
+  onCreateContextTask: ContextualTaskCreateHandler
   isDraggingTask: boolean
   droppableDisabled?: boolean
 }
@@ -510,7 +510,7 @@ interface WeekendColumnsStripProps {
   dimPastDays: boolean
   activeCreateTarget: string | null
   onActiveCreateTargetChange: (target: string | null) => void
-  onCreateContextTask: (params: ContextualTaskCreateParams) => Promise<void>
+  onCreateContextTask: ContextualTaskCreateHandler
   isDraggingTask: boolean
 }
 

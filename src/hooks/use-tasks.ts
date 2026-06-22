@@ -12,6 +12,7 @@ type CreateTaskPayload = Parameters<typeof api.createTask>[0]
 
 export interface CreateTaskInput extends CreateTaskPayload {
   clientTrace?: ClientMutationTrace
+  onOptimistic?: () => void
 }
 
 export interface UpdateTaskInput {
@@ -205,7 +206,11 @@ export function useTaskOccupancy(from: string, to: string) {
 export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ clientTrace: _clientTrace, ...data }: CreateTaskInput) => api.createTask(data),
+    mutationFn: ({
+      clientTrace: _clientTrace,
+      onOptimistic: _onOptimistic,
+      ...data
+    }: CreateTaskInput) => api.createTask(data),
     onMutate: async (newTaskParams) => {
       await qc.cancelQueries({ queryKey: taskKeys.all() })
 
@@ -228,6 +233,7 @@ export function useCreateTask() {
       }
 
       addTaskToCaches(qc, tempTask)
+      newTaskParams.onOptimistic?.()
       logClientLatency(newTaskParams.clientTrace, 'optimistic')
 
       return { tempId, clientTrace: newTaskParams.clientTrace }

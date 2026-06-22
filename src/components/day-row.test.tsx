@@ -5,7 +5,7 @@ import { DndContext } from '@dnd-kit/core'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ContextualTaskCreateParams, Task } from '../lib/types'
+import type { ContextualTaskCreateHandler, Task } from '../lib/types'
 import { DayColumn } from './day-row'
 
 afterEach(() => {
@@ -35,7 +35,7 @@ interface HarnessProps {
   isDraggingTask?: boolean
   onOpenTask?: (task: Task) => void
   onActiveCreateTargetChange?: (target: string | null) => void
-  onCreateContextTask?: (params: ContextualTaskCreateParams) => Promise<void>
+  onCreateContextTask?: ContextualTaskCreateHandler
 }
 
 function Harness({
