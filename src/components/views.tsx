@@ -9,7 +9,7 @@ import {
   WeekendStrip, WeekendColumnsStrip,
   WeeklistStrip, WeeklistPanel,
 } from './day-row'
-import { IconArrow, TaskRow, InlineAdd } from './task-components'
+import { IconArrow, IconPlus, TaskRow, InlineAdd } from './task-components'
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from '../hooks/use-tags'
 
 const TODAY = new Date()
@@ -306,6 +306,7 @@ interface WeekViewProps {
   onUpdateTask: (task: Task) => void
   onDeleteTask: (id: string) => void
   onMoveTask: (id: string, bucketKey: string) => void
+  onOpenQuickAdd: () => void
   onPrevWeek: () => void
   onNextWeek: () => void
   onToday: () => void
@@ -324,6 +325,7 @@ export function WeekView({
   weekStart, tasks, variant, showWeekend, dimPastDays, dark,
   accent,
   onOpenTask, onAddTask, onUpdateTask, onDeleteTask, onMoveTask,
+  onOpenQuickAdd,
   onPrevWeek, onNextWeek, onToday,
   onChangeVariant, onToggleWeekend, onToggleDark,
   overdueTasks, onPullOneOverdue, onPullAllOverdue,
@@ -428,6 +430,21 @@ export function WeekView({
 
         {/* Toggles Area */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <button
+            type="button"
+            className="pill-btn"
+            onClick={onOpenQuickAdd}
+            aria-label="Nova tarefa"
+            title="Nova tarefa (Alt+Q)"
+            style={{
+              minWidth: 44, minHeight: 44,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              gap: 6, flexShrink: 0,
+            }}
+          >
+            <IconPlus size={14} />
+            {!isMobile && <span>Nova tarefa</span>}
+          </button>
           <button className="ghost-btn" onClick={onPrevWeek} title="Semana anterior (←)">
             <IconArrow dir="left" />
           </button>

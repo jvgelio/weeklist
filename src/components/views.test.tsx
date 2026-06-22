@@ -4,8 +4,12 @@ import React from 'react'
 import { DndContext } from '@dnd-kit/core'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WeekView } from './views'
+
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn()
+})
 
 afterEach(() => {
   cleanup()
@@ -13,13 +17,25 @@ afterEach(() => {
 
 const weekStart = new Date(2026, 5, 22)
 
-function WeekViewHarness({ isDraggingTask = false }: { isDraggingTask?: boolean }) {
+interface WeekViewHarnessProps {
+  isDraggingTask?: boolean
+  isMobile?: boolean
+  onOpenQuickAdd?: () => void
+  variant?: 'columns' | 'quiet'
+}
+
+function WeekViewHarness({
+  isDraggingTask = false,
+  isMobile = false,
+  onOpenQuickAdd = vi.fn(),
+  variant = 'columns',
+}: WeekViewHarnessProps) {
   return (
     <DndContext>
       <WeekView
         weekStart={weekStart}
         tasks={{}}
-        variant="columns"
+        variant={variant}
         showWeekend
         dimPastDays={false}
         dark={false}
@@ -39,8 +55,10 @@ function WeekViewHarness({ isDraggingTask = false }: { isDraggingTask?: boolean 
         overdueTasks={[]}
         onPullOneOverdue={vi.fn()}
         onPullAllOverdue={vi.fn()}
+        onOpenQuickAdd={onOpenQuickAdd}
         onCreateContextTask={vi.fn(async () => undefined)}
         isDraggingTask={isDraggingTask}
+        isMobile={isMobile}
       />
     </DndContext>
   )
@@ -100,5 +118,32 @@ describe('WeekView contextual task creation', () => {
       'value',
       'Rascunho preservado',
     )
+  })
+})
+
+describe('WeekView global task creation', () => {
+  it('exposes one global action that opens quick add', async () => {
+    const user = userEvent.setup()
+    const onOpenQuickAdd = vi.fn()
+
+    render(<WeekViewHarness onOpenQuickAdd={onOpenQuickAdd} />)
+
+    const actions = screen.getAllByRole('button', { name: 'Nova tarefa' })
+    expect(actions).toHaveLength(1)
+    expect(actions[0]).toHaveProperty('type', 'button')
+    expect(actions[0]).toHaveProperty('title', 'Nova tarefa (Alt+Q)')
+    expect(actions[0].classList.contains('pill-btn')).toBe(true)
+    expect(actions[0].textContent).toContain('Nova tarefa')
+    await user.click(actions[0])
+    expect(onOpenQuickAdd).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps one accessible 44px action in the mobile quiet variant', () => {
+    render(<WeekViewHarness isMobile variant="quiet" />)
+
+    const actions = screen.getAllByRole('button', { name: 'Nova tarefa' })
+    expect(actions).toHaveLength(1)
+    expect(actions[0].style.minWidth).toBe('44px')
+    expect(actions[0].style.minHeight).toBe('44px')
   })
 })

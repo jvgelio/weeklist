@@ -650,6 +650,7 @@ export default function App() {
               onPrevWeek={() => setWeekStart((w) => addDays(w, -7))}
               onNextWeek={() => setWeekStart((w) => addDays(w, 7))}
               onToday={() => setWeekStart(startOfWeek(TODAY, 1))}
+              onOpenQuickAdd={() => setShowQuickAdd(true)}
               onAddTask={handleAddTask}
               onCreateContextTask={handleContextualAdd}
               isDraggingTask={draggingTask !== null}
