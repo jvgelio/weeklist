@@ -567,7 +567,7 @@ git commit -m "feat: expose global task creation"
 - Move to: `docs/plans/completed/2026-06-21-contextual-task-creation.md`
 - Review only: `docs/specs/2026-06-21-contextual-task-creation-design.md`
 
-- [ ] **Step 1: Run all automated gates**
+- [x] **Step 1: Run all automated gates**
 
 Run:
 
@@ -579,7 +579,7 @@ Expected: client/config typecheck, all Vitest tests, and production build PASS.
 
 No server code is changed, so `npm run typecheck:server` is not required for this task.
 
-- [ ] **Step 2: Verify desktop columns in the browser**
+- [x] **Step 2: Verify desktop columns in the browser**
 
 Run `npm run dev`, open the authenticated weekly view, select columns, and check at widths 1280 and 1024:
 
@@ -593,7 +593,7 @@ Run `npm run dev`, open the authenticated weekly view, select columns, and check
 8. Dragging a task hides/disables creation affordances while drop feedback still works.
 9. The created optimistic row appears in the same slot without a column-wide animation.
 
-- [ ] **Step 3: Verify accessibility, themes, motion, and responsive behavior**
+- [x] **Step 3: Verify accessibility, themes, motion, and responsive behavior**
 
 Check:
 
@@ -606,7 +606,7 @@ Check:
 7. No horizontal overflow is introduced at supported column widths.
 8. Browser console has no new errors or warnings.
 
-- [ ] **Step 4: Review the final diff**
+- [x] **Step 4: Review the final diff**
 
 Run:
 
@@ -618,7 +618,7 @@ git diff HEAD~4 -- src docs
 
 Expected: no whitespace errors, no secrets, no unrelated files, and only the scoped UI, tests, spec, and plan changes.
 
-- [ ] **Step 5: Record actual results and complete the plan**
+- [x] **Step 5: Record actual results and complete the plan**
 
 Update this file with:
 
@@ -634,3 +634,39 @@ git mv docs/plans/active/2026-06-21-contextual-task-creation.md docs/plans/compl
 git add docs/plans/completed/2026-06-21-contextual-task-creation.md
 git commit -m "docs: complete contextual creation plan"
 ```
+
+## Actual results
+
+Implemented contextual task creation for weekly columns and weekend columns. The repeated inline "Adicionar tarefa" rows were replaced by large contextual zones that reveal on hover/focus, open a single composer at a time, preserve drafts per target, inherit day/slot context, and let natural-language input override date, slot, priority, recurrence, and tags. The global "Nova tarefa" action remains available through the weekly header and `Alt+Q`, including mobile.
+
+Follow-up quality fixes delivered after implementation review:
+
+- contextual composer hides on optimistic insertion instead of waiting for the final server response;
+- async rejection restores the draft and refocuses the input;
+- pending status is focusable and announced without stealing focus on success;
+- mobile quiet layout keeps a 320 px viewport without horizontal overflow;
+- collapsed Weeklist remains a real droppable target with `aria-expanded`, `aria-controls`, and readable labeling;
+- hidden or collapsed weekend droppables are disabled when they should not participate.
+
+Automated verification:
+
+- `npm run verify` passed: client/config typecheck passed, Vitest passed with 13 test files and 71 tests, and the Vite production build passed.
+- `git diff --check` passed with no whitespace errors.
+- `git status --short` was clean before this documentation update.
+
+Browser verification:
+
+- Desktop at 1280x720: no repeated visible add rows at rest, contextual zones were large and accessible, clicking Monday morning opened the correct composer, `tom de tarde p1 #work` updated the destination and parsed metadata, and creation produced a single task row after optimistic insertion.
+- Mobile at 320x720: no horizontal overflow, main content stayed at 320 px, the global action remained a 44 px icon-only "Nova tarefa" button, the Weeklist control exposed `Weeklist, 0 tarefas`, and tapping the global action opened QuickAdd.
+- Browser console checks during the live flow showed no new errors or warnings.
+
+Deviations and constraints:
+
+- Live browser verification used a temporary in-memory mock API because the local app could not start the real API without `.env` credentials. The UI behavior, optimistic insertion, and responsive layout were verified against the mock; server persistence behavior is covered by the existing client API contract and hook tests.
+- Dark theme, reduced-motion behavior, and drag feedback were verified through code/tests rather than live browser toggles in the final pass.
+- No server files changed, so `npm run typecheck:server` was not required for this task.
+- `npm install` reported existing audit findings earlier in the work, but manifests were not changed and dependency remediation was outside this scope.
+
+Residual risk:
+
+- No known product-scope blocker remains. The main residual risk is environment-specific: final live verification did not use a real authenticated backend because local secrets were unavailable.
